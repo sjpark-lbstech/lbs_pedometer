@@ -1,8 +1,21 @@
 package plugin.net.lbstech.lbs_pedometer;
 
+import android.app.Activity;
+import android.app.ActivityManager;
+import android.app.Application;
+import android.content.Context;
+import android.os.Bundle;
+import android.util.Log;
+
 import androidx.annotation.NonNull;
 
+import java.nio.channels.Channel;
+import java.util.ArrayList;
+import java.util.HashMap;
+
 import io.flutter.embedding.engine.plugins.FlutterPlugin;
+import io.flutter.embedding.engine.plugins.activity.ActivityAware;
+import io.flutter.embedding.engine.plugins.activity.ActivityPluginBinding;
 import io.flutter.plugin.common.MethodCall;
 import io.flutter.plugin.common.MethodChannel;
 import io.flutter.plugin.common.MethodChannel.MethodCallHandler;
@@ -10,44 +23,186 @@ import io.flutter.plugin.common.MethodChannel.Result;
 import io.flutter.plugin.common.PluginRegistry.Registrar;
 
 /** LbsPedometerPlugin */
-public class LbsPedometerPlugin implements FlutterPlugin, MethodCallHandler {
-  /// The MethodChannel that will the communication between Flutter and native Android
-  ///
-  /// This local reference serves to register the plugin with the Flutter Engine and unregister it
-  /// when the Flutter Engine is detached from the Activity
-  private MethodChannel channel;
+public class LbsPedometerPlugin implements FlutterPlugin,
+        MethodCallHandler,
+        Application.ActivityLifecycleCallbacks,
+        ActivityAware {
+  private static final String CHANNEL_NAME = "lbstech.net.plugin/lbs_pedoemter";
+  private static MethodChannel channel;
+
+  private static LocationHandler locationHandler;
+  private static ServiceManager serviceManager;
+
+  private static Context applicationContext;
+  private static Activity activity;
+  private boolean isServiceRunning;
 
   @Override
   public void onAttachedToEngine(@NonNull FlutterPluginBinding flutterPluginBinding) {
-    channel = new MethodChannel(flutterPluginBinding.getFlutterEngine().getDartExecutor(), "lbs_pedometer");
+    Log.i("PEDOLOG_PP", "onAttachedToEngine");
+    applicationContext = flutterPluginBinding.getApplicationContext();
+    LbsPedometerPlugin instance = new LbsPedometerPlugin();
+    channel = new MethodChannel(flutterPluginBinding.getBinaryMessenger(), CHANNEL_NAME);
     channel.setMethodCallHandler(this);
   }
 
-  // This static function is optional and equivalent to onAttachedToEngine. It supports the old
-  // pre-Flutter-1.12 Android projects. You are encouraged to continue supporting
-  // plugin registration via this function while apps migrate to use the new Android APIs
-  // post-flutter-1.12 via https://flutter.dev/go/android-project-migration.
-  //
-  // It is encouraged to share logic between onAttachedToEngine and registerWith to keep
-  // them functionally equivalent. Only one of onAttachedToEngine or registerWith will be called
-  // depending on the user's project. onAttachedToEngine or registerWith must both be defined
-  // in the same class.
   public static void registerWith(Registrar registrar) {
-    final MethodChannel channel = new MethodChannel(registrar.messenger(), "lbs_pedometer");
-    channel.setMethodCallHandler(new LbsPedometerPlugin());
+    LbsPedometerPlugin instance = new LbsPedometerPlugin();
+    applicationContext = registrar.context();
+    activity = registrar.activity();
+    activity.getApplication().registerActivityLifecycleCallbacks(instance);
+    channel = new MethodChannel(registrar.messenger(), CHANNEL_NAME);
+    channel.setMethodCallHandler(instance);;
+
+    serviceManager = new ServiceManager(applicationContext, activity, instance);
+    locationHandler = new LocationHandler(applicationContext, activity, instance);
   }
 
   @Override
   public void onMethodCall(@NonNull MethodCall call, @NonNull Result result) {
-    if (call.method.equals("getPlatformVersion")) {
-      result.success("Android " + android.os.Build.VERSION.RELEASE);
-    } else {
-      result.notImplemented();
+
+    if (call.method.equals("getLocation"))
+    {
+      Log.i("PEDOLOG_PP", "getLocation method called");
+      locationHandler.getLocation(result);
     }
+    else if (call.method.equals("getState"))
+    {
+      Log.i("PEDOLOG_PP", "getState method called");
+      result.success(locationHandler.getLocationPermissionState());
+    }
+    else if (call.method.equals("start"))
+    {
+      Log.i("PEDOLOG_PP", "start method called");
+
+      if (!isServiceRunning(ServiceSensor.class)) {
+        String title = call.argument("title");
+        String content = call.argument("content");
+        assert content != null && title != null;
+        serviceManager.serviceStart(title, content);
+      }
+      result.success(null);
+    }
+    else if (call.method.equals("stop"))
+    {
+      Log.i("PEDOLOG_PP", "stop method called");
+      ArrayList<HashMap<String, Object>> list = serviceManager.serviceStop();
+      result.success(list);
+    }
+    else if (call.method.equals("requestPermission"))
+    {
+      Log.i("PEDOLOG_PP", "requestPermission method called");
+      locationHandler.requestPermission();
+      serviceManager.requestPermission();
+      result.success(null);
+    }
+    else if(call.method.equals("getHistory"))
+    {
+      Log.i("PEDOLOG_PP", "getHistory method called");
+      ArrayList<HashMap<String, Object>> list = SQLController.getInstance(applicationContext).getHistory();
+      result.success(list);
+    }
+
+  }
+
+  void sendDataToFlutter(HashMap<String, Object> map){
+    channel.invokeMethod("takeSteps", map);
+  }
+
+  private boolean isServiceRunning(Class<?> serviceClass) {
+    ActivityManager manager = (ActivityManager) applicationContext.getSystemService(Context.ACTIVITY_SERVICE);
+    for (ActivityManager.RunningServiceInfo service : manager.getRunningServices(Integer.MAX_VALUE)) {
+      if (serviceClass.getName().equals(service.service.getClassName())) {
+        return true;
+      }
+    }
+    return false;
   }
 
   @Override
   public void onDetachedFromEngine(@NonNull FlutterPluginBinding binding) {
     channel.setMethodCallHandler(null);
   }
+
+
+  // ================================= ActivityAware =================================
+
+
+  @Override
+  public void onAttachedToActivity(ActivityPluginBinding binding) {
+    Log.i("PEDOLOG_PP", "onAttachToActivity");
+    activity = binding.getActivity();
+    activity.getApplication().registerActivityLifecycleCallbacks(this);
+
+    if(locationHandler == null || serviceManager == null) {
+      locationHandler = new LocationHandler(applicationContext, activity, this);
+      serviceManager = new ServiceManager(applicationContext, activity, this);
+    }
+  }
+
+  @Override
+  public void onDetachedFromActivityForConfigChanges() {
+    this.onDetachedFromActivity();
+  }
+
+  @Override
+  public void onReattachedToActivityForConfigChanges(ActivityPluginBinding binding) {
+    binding.getActivity().getApplication().registerActivityLifecycleCallbacks(this);
+  }
+
+  @Override
+  public void onDetachedFromActivity() {
+    activity.getApplication().unregisterActivityLifecycleCallbacks(this);
+  }
+
+
+  // ================================= life cycle call back ======================================
+
+  @Override
+  public void onActivityCreated(Activity activity, Bundle savedInstanceState) {
+    // created 이후에 registerActivityLifecycleCallbacks 함수가 불리기 떄문에
+    // 실제로는 호출 되지 않음.
+    Log.i("PEDOLOG_PP", "onCreated");
+  }
+
+  @Override
+  public void onActivityStarted(Activity activity) {
+    Log.i("PEDOLOG_PP", "onStarted");
+    if (serviceManager == null) return;
+    isServiceRunning = isServiceRunning(ServiceSensor.class);
+    serviceManager.onStarted(isServiceRunning);
+  }
+
+  @Override
+  public void onActivityResumed(Activity activity) {
+    Log.i("PEDOLOG_PP", "onResumed");
+    if(isServiceRunning){
+      ArrayList<HashMap<String, Object>> list = SQLController.getInstance(applicationContext).getHistory();
+      channel.invokeMethod("androidResume", list);
+    }
+  }
+
+  @Override
+  public void onActivityPaused(Activity activity) {
+    Log.i("PEDOLOG_PP", "onPaused");
+  }
+
+  @Override
+  public void onActivityStopped(Activity activity) {
+    Log.i("PEDOLOG_PP", "onStopped");
+    serviceManager.onStopped();
+  }
+
+  @Override
+  public void onActivitySaveInstanceState(Activity activity, Bundle outState) {
+
+  }
+
+  @Override
+  public void onActivityDestroyed(Activity activity) {
+    Log.i("PEDOLOG_PP", "onDestroy");
+    activity.getApplication().unregisterActivityLifecycleCallbacks(this);
+    channel.setMethodCallHandler(null);
+  }
+
 }
