@@ -1,0 +1,22 @@
+PODS:
+  - Flutter (1.0.0)
+  - lbs_pedometer (0.0.1):
+    - Flutter
+
+DEPENDENCIES:
+  - Flutter (from `Flutter`)
+  - lbs_pedometer (from `.symlinks/plugins/lbs_pedometer/ios`)
+
+EXTERNAL SOURCES:
+  Flutter:
+    :path: Flutter
+  lbs_pedometer:
+    :path: ".symlinks/plugins/lbs_pedometer/ios"
+
+SPEC CHECKSUMS:
+  Flutter: 0e3d915762c693b495b44d77113d4970485de6ec
+  lbs_pedometer: 1ee6825b0401a352d20eceebf220448f28dd713b
+
+PODFILE CHECKSUM: c34e2287a9ccaa606aeceab922830efb9a6ff69a
+
+COCOAPODS: 1.8.4
