@@ -58,7 +58,7 @@ ios 모듈에서 해야하는 작업을 마치면 안드로이드 모듈의 Mani
   <application>
     .
     .
-    <service android:name="net.lbstech.flutter_pedometer.ServiceSensor"
+    <service android:name="plugin.net.lbstech.lbs_pedometer.ServiceSensor"
             android:stopWithTask="false"
             android:exported="false"/>
     .
