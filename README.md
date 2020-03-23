@@ -45,7 +45,7 @@ Privacy - Motion Usage Description
 그리고 Xcode의 Runner setting 페이지에서 Singing & Capabilities에 들어가서
 background Modes를 추가하고 location updates를 선택한다.
 
-![xcode-config](./)
+![xcode-config](./xcode-config.png)
 
 ios 모듈에서 해야하는 작업을 마치면 안드로이드 모듈의 Manifest에 해당 권한과 서비스의 사용을 명시한다.
 
