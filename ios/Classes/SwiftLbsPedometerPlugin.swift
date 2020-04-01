@@ -38,10 +38,10 @@ public class SwiftLbsPedometerPlugin: NSObject, FlutterPlugin {
     public func applicationWillTerminate(_ application: UIApplication) {
         // 비정상 종료 또는 어플리케이션 실핼 도중 종료 누르지 않고 어플리케이션 종료하는 경우.
         print("application Will Terminate call backs")
-        guard let methodChannel = SwiftLbsPedometerPlugin.channel else { return }
-        
-        methodChannel.invokeMethod("onEnd", arguments: "어플리케이션 종료")
-        print("invoke method 완료")
+        guard let cont = SwiftLbsPedometerPlugin.controller else { return }
+        if cont.isRunning {
+            _ = cont.stop()
+        }
     }
     
     

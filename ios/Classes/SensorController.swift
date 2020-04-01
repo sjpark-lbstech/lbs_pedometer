@@ -25,6 +25,7 @@ class SensorController: NSObject, CLLocationManagerDelegate {
     var pedoStep : NSNumber = -1
     var location : CLLocation?
     var state : Int
+    var isRunning = false
     
     init(channel : FlutterMethodChannel) {
         self.channel = channel
@@ -68,6 +69,8 @@ class SensorController: NSObject, CLLocationManagerDelegate {
         locationManager.startUpdatingLocation()
         locationManager.startMonitoringSignificantLocationChanges()
         
+        isRunning = true;
+        
         print("ios pedometer and location sensor turn on.")
         pedometer.startUpdates(from: Date(), withHandler: { (data, error) in
             if data?.numberOfSteps != self.pedoStep {
@@ -99,6 +102,7 @@ class SensorController: NSObject, CLLocationManagerDelegate {
             result = sql.selctAll()
             sql.cleanDB()
         }
+        isRunning = false;
         print("ios pedometer and location sensor turn off.")
         return result
     }
