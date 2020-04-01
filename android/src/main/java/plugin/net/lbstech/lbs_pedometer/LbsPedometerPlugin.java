@@ -52,7 +52,7 @@ public class LbsPedometerPlugin implements FlutterPlugin,
     activity = registrar.activity();
     activity.getApplication().registerActivityLifecycleCallbacks(instance);
     channel = new MethodChannel(registrar.messenger(), CHANNEL_NAME);
-    channel.setMethodCallHandler(instance);;
+    channel.setMethodCallHandler(instance);
 
     serviceManager = new ServiceManager(applicationContext, activity, instance);
     locationHandler = new LocationHandler(applicationContext, activity, instance);
@@ -120,9 +120,7 @@ public class LbsPedometerPlugin implements FlutterPlugin,
   }
 
   @Override
-  public void onDetachedFromEngine(@NonNull FlutterPluginBinding binding) {
-    channel.setMethodCallHandler(null);
-  }
+  public void onDetachedFromEngine(@NonNull FlutterPluginBinding binding) { }
 
 
   // ================================= ActivityAware =================================
@@ -151,9 +149,7 @@ public class LbsPedometerPlugin implements FlutterPlugin,
   }
 
   @Override
-  public void onDetachedFromActivity() {
-    activity.getApplication().unregisterActivityLifecycleCallbacks(this);
-  }
+  public void onDetachedFromActivity() { }
 
 
   // ================================= life cycle call back ======================================
@@ -196,15 +192,12 @@ public class LbsPedometerPlugin implements FlutterPlugin,
   }
 
   @Override
-  public void onActivitySaveInstanceState(Activity activity, Bundle outState) {
-
-  }
+  public void onActivitySaveInstanceState(Activity activity, Bundle outState) { }
 
   @Override
   public void onActivityDestroyed(Activity activity) {
     Log.i("PEDOLOG_PP", "onDestroy");
     activity.getApplication().unregisterActivityLifecycleCallbacks(this);
-    channel.setMethodCallHandler(null);
   }
 
 }
