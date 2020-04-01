@@ -163,11 +163,13 @@ public class LbsPedometerPlugin implements FlutterPlugin,
     // created 이후에 registerActivityLifecycleCallbacks 함수가 불리기 떄문에
     // 실제로는 호출 되지 않음.
     Log.i("PEDOLOG_PP", "onCreated");
+    channel.setMethodCallHandler(this);
   }
 
   @Override
   public void onActivityStarted(Activity activity) {
     Log.i("PEDOLOG_PP", "onStarted");
+
     if (serviceManager == null) return;
     isServiceRunning = isServiceRunning(ServiceSensor.class);
     serviceManager.onStarted(isServiceRunning);
