@@ -52,6 +52,10 @@ class _PedometerController{
 
   Future<Coordinate> getLocation() async{
     Map arg = await _channel.invokeMethod(_MTD_GET_LOCATION);
+    if (arg == null){
+      AssertionError('argument from nvative method call[getLocation] is null.');
+      return null;
+    }
     return Coordinate(latitude: arg['lat'], longitude: arg['lng']);
   }
 

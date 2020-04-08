@@ -12,6 +12,7 @@ import androidx.annotation.NonNull;
 import java.nio.channels.Channel;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import io.flutter.embedding.engine.plugins.FlutterPlugin;
 import io.flutter.embedding.engine.plugins.activity.ActivityAware;
@@ -37,6 +38,10 @@ public class LbsPedometerPlugin implements FlutterPlugin,
   private static Activity activity;
   private boolean isServiceRunning;
 
+  private static boolean isRegisterLifecycleCallBack = false;
+  private static boolean isInit = true;
+  private static AtomicInteger initialActivityHashCode = null;
+
   @Override
   public void onAttachedToEngine(@NonNull FlutterPluginBinding flutterPluginBinding) {
     Log.i("PEDOLOG_PP", "onAttachedToEngine");
@@ -51,6 +56,7 @@ public class LbsPedometerPlugin implements FlutterPlugin,
     applicationContext = registrar.context();
     activity = registrar.activity();
     activity.getApplication().registerActivityLifecycleCallbacks(instance);
+    isRegisterLifecycleCallBack = true;
     channel = new MethodChannel(registrar.messenger(), CHANNEL_NAME);
     channel.setMethodCallHandler(instance);
 
@@ -130,7 +136,14 @@ public class LbsPedometerPlugin implements FlutterPlugin,
   public void onAttachedToActivity(ActivityPluginBinding binding) {
     Log.i("PEDOLOG_PP", "onAttachToActivity");
     activity = binding.getActivity();
-    activity.getApplication().registerActivityLifecycleCallbacks(this);
+    if (isInit){
+      initialActivityHashCode = new AtomicInteger(activity.hashCode());
+      isInit = false;
+    }
+    if (!isRegisterLifecycleCallBack) {
+      activity.getApplication().registerActivityLifecycleCallbacks(this);
+      isRegisterLifecycleCallBack = true;
+    }
 
     if(locationHandler == null || serviceManager == null) {
       locationHandler = new LocationHandler(applicationContext, activity, this);
@@ -195,9 +208,13 @@ public class LbsPedometerPlugin implements FlutterPlugin,
   public void onActivitySaveInstanceState(Activity activity, Bundle outState) { }
 
   @Override
+
   public void onActivityDestroyed(Activity activity) {
     Log.i("PEDOLOG_PP", "onDestroy");
-    activity.getApplication().unregisterActivityLifecycleCallbacks(this);
+    if (initialActivityHashCode != null && initialActivityHashCode.intValue() == activity.hashCode()) {
+      channel.setMethodCallHandler(null);
+      activity.getApplication().unregisterActivityLifecycleCallbacks(this);
+    }
   }
 
 }
