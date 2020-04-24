@@ -31,6 +31,8 @@ import com.google.android.gms.location.LocationResult;
 import com.google.android.gms.location.LocationServices;
 
 import java.util.List;
+import java.util.Timer;
+import java.util.TimerTask;
 
 public class ServiceSensor extends Service implements SensorEventListener {
     private final int MSG_INIT = 0XAA1;
@@ -44,10 +46,35 @@ public class ServiceSensor extends Service implements SensorEventListener {
     private Messenger appMessenger;
     private SQLController sqlController;
 
-    private Location location;
     private int stepCnt;
     static int currentSavedStepCnt = 0;
+    private Timer timer = new Timer();
+    private SaveTask saveTask = new SaveTask();
+
     private boolean isAppAlive() { return appMessenger != null; }
+
+
+    // sensor 값 저장을 위한 변수 선언 부분
+
+    // fused location
+    private Location location;
+    // TYPE_ACCELEROMETER
+    float acX, acY, acZ;
+    // TYPE_GYROSCOPE
+    float gyX, gyY, gyZ;
+    // TYPE_MAGNETIC_FIELD
+    float maX, maY, maZ;
+    // TYPE_PRESSURE
+    float pressure;
+    // TYPE_ROTATION_VECTOR
+    float veX, veY, veZ, veCos, veAccuracy;
+    // TYPE_AMBIENT_TEMPERATURE
+    float tmpDegree;
+    // TYPE_RELATIVE_HUMIDITY
+    float humidity;
+    // TYPE_MOTION_DETECT, TYPE_STEP_DETECTOR, TYPE_SIGNIFICANT_MOTION
+    // 해당 불린은 저장이후 false 로 변환
+    boolean step, motion, sigMotion;
 
     // ==================================== anonymous class =====================================
     // message handler - APP 으로부터의 메세지를 다루는 익명 클래스
@@ -148,10 +175,33 @@ public class ServiceSensor extends Service implements SensorEventListener {
     // MSG_INIT 받으면 호출
     private void sensorStart(){
         locationStart();
-        if (sensorManager.getDefaultSensor(Sensor.TYPE_STEP_DETECTOR) != null) {
-            Sensor stepSensor = sensorManager.getDefaultSensor(Sensor.TYPE_STEP_DETECTOR);
-            sensorManager.registerListener(this, stepSensor, SensorManager.SENSOR_DELAY_NORMAL);
+
+        int[] sensorTypes = new int[]{
+                Sensor.TYPE_ACCELEROMETER,
+                Sensor.TYPE_GYROSCOPE,
+                Sensor.TYPE_MAGNETIC_FIELD,
+                Sensor.TYPE_PRESSURE,
+                Sensor.TYPE_ROTATION_VECTOR,
+                Sensor.TYPE_STEP_DETECTOR,
+                Sensor.TYPE_AMBIENT_TEMPERATURE,
+                Sensor.TYPE_RELATIVE_HUMIDITY,
+                Sensor.TYPE_SIGNIFICANT_MOTION,
+        };
+        Sensor tmp;
+        for (int type : sensorTypes) {
+            tmp = sensorManager.getDefaultSensor(type);
+            if (tmp != null){
+                sensorManager.registerListener(this, tmp, SensorManager.SENSOR_DELAY_NORMAL);
+            }
         }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N){
+            Sensor motion = sensorManager.getDefaultSensor(Sensor.TYPE_MOTION_DETECT);
+            if (motion != null) {
+                sensorManager.registerListener(this, motion, SensorManager.SENSOR_DELAY_NORMAL);
+            }
+        }
+
+        timer.schedule(saveTask, 1000, 1000);
     }
 
     private void locationStart() {
@@ -164,6 +214,7 @@ public class ServiceSensor extends Service implements SensorEventListener {
 
     // onDestroy 에서 호출
     private void sensorStop() {
+        timer.cancel();
         sensorManager.unregisterListener(this);
         fusedLocationProviderClient.removeLocationUpdates(locationCallback);
         locationCallback = null;
@@ -172,13 +223,13 @@ public class ServiceSensor extends Service implements SensorEventListener {
     @Override
     public void onSensorChanged(SensorEvent event) {
         int type = event.sensor.getType();
+        float[] values = event.values;
         switch (type){
             case Sensor.TYPE_STEP_DETECTOR :
+                step = true;
                 ++stepCnt;
-                Log.i("PEDOLOG_SS", "step detector. Steps : " + stepCnt);
+                currentSavedStepCnt = stepCnt;
                 if(stepCnt % 10 == 2 && location != null){
-                    currentSavedStepCnt = stepCnt;
-                    sqlController.insert(stepCnt, location.getLatitude(), location.getLongitude());
                     if(isAppAlive()){
                         try {
                             Message msg = Message.obtain(null, MSG_SENSOR_TRIGGER);
@@ -190,6 +241,43 @@ public class ServiceSensor extends Service implements SensorEventListener {
                         }
                     }
                 }
+                break;
+            case Sensor.TYPE_ACCELEROMETER :
+                acX = values[0];
+                acY = values[1];
+                acZ = values[2];
+                break;
+            case Sensor.TYPE_GYROSCOPE :
+                gyX = values[0];
+                gyY = values[1];
+                gyZ = values[2];
+                break;
+            case Sensor.TYPE_MAGNETIC_FIELD :
+                maX = values[0];
+                maY = values[1];
+                maZ = values[1];
+                break;
+            case Sensor.TYPE_ROTATION_VECTOR :
+                veX = values[0];
+                veY = values[1];
+                veZ = values[2];
+                veCos = values[3];
+                veAccuracy = values[4];
+                break;
+            case Sensor.TYPE_AMBIENT_TEMPERATURE :
+                tmpDegree = values[0];
+                break;
+            case Sensor.TYPE_RELATIVE_HUMIDITY :
+                humidity = values[0];
+                break;
+            case Sensor.TYPE_PRESSURE :
+                pressure = values[0];
+                break;
+            case Sensor.TYPE_MOTION_DETECT :
+                motion = true;
+                break;
+            case Sensor.TYPE_SIGNIFICANT_MOTION :
+                sigMotion = true;
                 break;
         }
     }
@@ -212,6 +300,26 @@ public class ServiceSensor extends Service implements SensorEventListener {
                 List<Location> locationList = locationResult.getLocations();
                 location = locationList.get(locationList.size() - 1);
             }
+        }
+    }
+
+
+    // ======================= Timer Task 상속받는 inner class ==================
+    class SaveTask extends TimerTask{
+        @Override
+        public void run() {
+            double lat, lng;
+            if(location == null) lat = lng = 0.0;
+            else {
+                lat = location.getLatitude();
+                lng = location.getLongitude();
+            }
+            sqlController.insert(stepCnt, lat, lng,
+                    acX, acY, acZ, gyX, gyY, gyZ, maX, maY, maZ, veX, veY, veZ, veCos, veAccuracy,
+                    pressure, tmpDegree, humidity, step, motion, sigMotion);
+            step = false;
+            motion = false;
+            sigMotion = false;
         }
     }
 }

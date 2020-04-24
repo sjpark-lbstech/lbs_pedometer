@@ -159,7 +159,7 @@ public class ServiceManager implements ServiceConnection {
             if (data == MSG_SENSOR_TRIGGER) {
                 Log.i("PEDOLOG_SM", "receive trigger.");
                 plugin.sendDataToFlutter(
-                        sqlController.getCurrentWhereStep(ServiceSensor.currentSavedStepCnt)
+                        sqlController.getCurrent()
                 );
             }
             super.handleMessage(msg);
