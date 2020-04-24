@@ -233,7 +233,7 @@ class SQLController {
 
         Cursor cursor;
         synchronized (database){
-            String query = "SELECT * FROM " + TABLE_NAME + " ORDER BY id DESC LIMIT 1";
+            String query = "SELECT * FROM " + TABLE_NAME + " ORDER BY _id DESC LIMIT 1";
             cursor = database.rawQuery(query, null);
         }
         if (cursor != null && cursor.moveToFirst()){
