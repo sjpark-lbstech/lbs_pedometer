@@ -122,6 +122,9 @@ class _MyAppState extends State<MyApp> {
     _pedometer.start(
       onTakeStep: onTakeStep,
       onAndroidResumed: onAndroidResume,
+      resultStepsUnit: 3,
+      storeHistory: true,
+      storeStepsUnit: 10,
     );
   }
 
