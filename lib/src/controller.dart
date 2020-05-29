@@ -31,6 +31,9 @@ class _PedometerController {
     _pedometerStream = _eventChannel.receiveBroadcastStream({
       'title': _androidNotificationTitle,
       'content': _androidNotificationContent,
+      'storeHistory': storeHistory ?? true,
+      'resultStepsUnit': resultStepsUnit ?? storeStepsUnit ?? 10,
+      'storeStepsUnit': storeStepsUnit ?? resultStepsUnit ?? 10,
     }).listen((stepData) => pedometer._onTakeStep(StepData.fromMap(stepData)));
   }
 
