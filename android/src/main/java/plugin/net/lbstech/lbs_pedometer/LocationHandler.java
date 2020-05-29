@@ -20,23 +20,20 @@ import java.util.HashMap;
 
 import io.flutter.plugin.common.MethodChannel;
 
-public class LocationHandler {
+class LocationHandler {
     private static final int RQ_CODE_PERMISSION = 0xff01;
 
     private Context context;
     private Activity activity;
-    private LbsPedometerPlugin plugin;
     private FusedLocationProviderClient fusedLocationProviderClient;
 
     private int locationPermissionState = 22312;
     private boolean isLocationEnable;
     private boolean isGPSEnable;
 
-    LocationHandler(Context context, Activity activity, LbsPedometerPlugin instance) {
+    LocationHandler(Context context, Activity activity) {
         this.context = context;
         this.activity = activity;
-        this.plugin = instance;
-//        requestPermission();
 
         LocationManager locationManager = (LocationManager) context.getSystemService(Context.LOCATION_SERVICE);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
