@@ -30,14 +30,12 @@ import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationResult;
 import com.google.android.gms.location.LocationServices;
 
+import java.util.Calendar;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class ServiceSensor extends Service implements SensorEventListener {
-    private final int MSG_INIT = 0XAA1;
-    private final int MSG_SENSOR_TRIGGER = 0XAA2;
-    private final int MSG_LIFECYCLE_START = 0XAA3;
-    private final int MSG_LIFECYCLE_STOP = 0XAA4;
-
     private FusedLocationProviderClient fusedLocationProviderClient;
     private LocationCallback locationCallback;
     private SensorManager sensorManager;
@@ -46,27 +44,42 @@ public class ServiceSensor extends Service implements SensorEventListener {
 
     private Location location;
     private int stepCnt;
+
+    private boolean storeHistory;
+    private int resultStepsUnit;
+    private int storeStepsUnit;
+
     static int currentSavedStepCnt = 0;
-    private boolean isAppAlive() { return appMessenger != null; }
+
+    /// 처음 몇 걸음에 좌표가 나오지 않을경우가 있어 이에 대한 보정 offset.
+    static final int noLocationStepOffset = 2;
+
+    private boolean isAppAlive() {
+        return appMessenger != null;
+    }
 
     // ==================================== anonymous class =====================================
     // message handler - APP 으로부터의 메세지를 다루는 익명 클래스
     @SuppressLint("HandlerLeak")
-    private Messenger messenger = new Messenger(new Handler(){
+    private Messenger messenger = new Messenger(new Handler() {
         @Override
         public void handleMessage(Message msg) {
             int data = msg.what;
-            switch (data){
-                case MSG_INIT:
+            switch (data) {
+                case ServiceManager.MSG_INIT:
                     Log.i("PEDOLOG_SS", "received msg: MSG_INIT");
                     appMessenger = msg.replyTo;
+                    Map args = (Map) msg.obj;
+                    storeHistory = (boolean) args.get("storeHistory");
+                    resultStepsUnit = (int) args.get("resultStepsUnit");
+                    storeStepsUnit = (int) args.get("storeStepsUnit");
                     sensorStart();
                     break;
-                case MSG_LIFECYCLE_START:
+                case ServiceManager.MSG_LIFECYCLE_START:
                     Log.i("PEDOLOG_SS", "received msg: MSG_LIFECYCLE_START");
                     appMessenger = msg.replyTo;
                     break;
-                case MSG_LIFECYCLE_STOP:
+                case ServiceManager.MSG_LIFECYCLE_STOP:
                     Log.i("PEDOLOG_SS", "received msg: MSG_LIFECYCLE_STOP");
                     appMessenger = null;
                     break;
@@ -96,7 +109,7 @@ public class ServiceSensor extends Service implements SensorEventListener {
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         Log.i("PEDOLOG_SS", "onStartCommand called.");
-        if(intent != null) {
+        if (intent != null) {
             Bundle bundle = intent.getExtras();
             String title = "GPS Activating";
             String text = "App is receive location update";
@@ -110,13 +123,13 @@ public class ServiceSensor extends Service implements SensorEventListener {
         return START_STICKY;
     }
 
-    private Notification buildNotification(String title, String text){
+    private Notification buildNotification(String title, String text) {
         NotificationCompat.Builder builder;
         String CHANNEL_ID = "lbstech_service_channel";
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O){
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             NotificationChannel channel = new NotificationChannel(CHANNEL_ID, CHANNEL_ID,
                     NotificationManager.IMPORTANCE_DEFAULT);
-            ((NotificationManager)getSystemService(Context.NOTIFICATION_SERVICE))
+            ((NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE))
                     .createNotificationChannel(channel);
         }
         builder = new NotificationCompat.Builder(this, CHANNEL_ID)
@@ -146,7 +159,7 @@ public class ServiceSensor extends Service implements SensorEventListener {
     // ================================== sensor 관련 =====================================
 
     // MSG_INIT 받으면 호출
-    private void sensorStart(){
+    private void sensorStart() {
         locationStart();
         if (sensorManager.getDefaultSensor(Sensor.TYPE_STEP_DETECTOR) != null) {
             Sensor stepSensor = sensorManager.getDefaultSensor(Sensor.TYPE_STEP_DETECTOR);
@@ -172,43 +185,56 @@ public class ServiceSensor extends Service implements SensorEventListener {
     @Override
     public void onSensorChanged(SensorEvent event) {
         int type = event.sensor.getType();
-        switch (type){
-            case Sensor.TYPE_STEP_DETECTOR :
+        switch (type) {
+            case Sensor.TYPE_STEP_DETECTOR:
                 ++stepCnt;
                 Log.i("PEDOLOG_SS", "step detector. Steps : " + stepCnt);
-                if(stepCnt % 10 == 2 && location != null){
-                    currentSavedStepCnt = stepCnt;
-                    sqlController.insert(stepCnt, location.getLatitude(), location.getLongitude());
-                    if(isAppAlive()){
+
+                if (stepCnt % resultStepsUnit == noLocationStepOffset && location != null) {
+                    if (storeHistory && stepCnt % storeStepsUnit == noLocationStepOffset) {
+                        currentSavedStepCnt = stepCnt;
+                        sqlController.insert(stepCnt, location.getLatitude(), location.getLongitude());
+                    }
+
+                    if (isAppAlive()) {
                         try {
-                            Message msg = Message.obtain(null, MSG_SENSOR_TRIGGER);
+                            Map obj = new HashMap<String, Object>();
+                            obj.put("step", stepCnt);
+                            obj.put("latitude", location.getLatitude());
+                            obj.put("longitude", location.getLongitude());
+                            obj.put("timestamp", Calendar.getInstance().getTimeInMillis());
+
+                            Message msg = Message.obtain(null, ServiceManager.MSG_SENSOR_TRIGGER, obj);
                             appMessenger.send(msg);
-                        }catch (RemoteException e){
+                        } catch (RemoteException e) {
                             Log.i("PEDOLOG_SM", "try to send, but Service doesn't exist.." +
                                     "\nmsg: MSG_LIFECYCLE_STOP");
                             e.printStackTrace();
                         }
                     }
                 }
+
                 break;
         }
     }
 
     @Override
-    public void onAccuracyChanged(Sensor sensor, int accuracy) {}
+    public void onAccuracyChanged(Sensor sensor, int accuracy) {
+    }
 
 
     // ================================== inner class ===========================================
 
     class PedometerLocationCallback extends LocationCallback {
         boolean isFirst = true;
+
         @Override
         public void onLocationResult(LocationResult locationResult) {
             if (isFirst) {
                 Log.i("PEDOLOG_SS", "location update start.");
                 isFirst = false;
             }
-            if (locationResult != null){
+            if (locationResult != null) {
                 List<Location> locationList = locationResult.getLocations();
                 location = locationList.get(locationList.size() - 1);
             }
