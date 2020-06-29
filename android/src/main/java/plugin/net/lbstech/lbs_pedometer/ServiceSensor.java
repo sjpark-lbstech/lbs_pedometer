@@ -63,22 +63,6 @@ public class ServiceSensor extends Service implements SensorEventListener {
     // TYPE_PRESSURE
     float pressure;
 
-//    // TYPE_ACCELEROMETER
-//    float acX, acY, acZ;
-//    // TYPE_GYROSCOPE
-//    float gyX, gyY, gyZ;
-//    // TYPE_MAGNETIC_FIELD
-//    float maX, maY, maZ;
-    // TYPE_ROTATION_VECTOR
-//    float veX, veY, veZ, veCos, veAccuracy;
-//    // TYPE_AMBIENT_TEMPERATURE
-//    float tmpDegree;
-//    // TYPE_RELATIVE_HUMIDITY
-//    float humidity;
-//    // TYPE_MOTION_DETECT, TYPE_STEP_DETECTOR, TYPE_SIGNIFICANT_MOTION
-//    // 해당 불린은 저장이후 false 로 변환
-//    boolean step, motion, sigMotion;
-
     // ==================================== anonymous class =====================================
     // message handler - APP 으로부터의 메세지를 다루는 익명 클래스
     @SuppressLint("HandlerLeak")
@@ -191,10 +175,6 @@ public class ServiceSensor extends Service implements SensorEventListener {
             }
         }
 
-        // 센서 저장하는 간격 (millisecond)
-        // 현제 1초당 1번씩 센서 저장
-        long term = 1000;
-        timer.schedule(saveTask, 1000, term);
     }
 
     private void locationStart() {
@@ -287,14 +267,21 @@ public class ServiceSensor extends Service implements SensorEventListener {
         boolean isFirst = true;
         @Override
         public void onLocationResult(LocationResult locationResult) {
-            if (isFirst) {
-                Log.i("PEDOLOG_SS", "location update start.");
-                isFirst = false;
-            }
             if (locationResult != null){
                 List<Location> locationList = locationResult.getLocations();
                 location = locationList.get(locationList.size() - 1);
                 location = filterLocation(location);
+            }
+
+            if (isFirst) {
+                Log.i("PEDOLOG_SS", "location update start.");
+
+                // 센서 저장하는 간격 (millisecond)
+                // 현제 1초당 1번씩 센서 저장
+                long term = 1000;
+                timer.schedule(saveTask, 0, term);
+
+                isFirst = false;
             }
         }
 

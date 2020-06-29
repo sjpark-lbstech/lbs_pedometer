@@ -143,30 +143,10 @@ class SQLController {
         if (cursor != null && cursor.moveToLast()){
             HashMap<String, Object> map = new HashMap<>();
             map.put("id", cursor.getInt(cursor.getColumnIndex("_id")));
-            map.put("stepCnt", cursor.getInt(cursor.getColumnIndex("stepCnt")));
             map.put("timestamp", cursor.getLong(cursor.getColumnIndex("timestamp")));
             map.put("latitude", cursor.getDouble(cursor.getColumnIndex("latitude")));
             map.put("longitude", cursor.getDouble(cursor.getColumnIndex("longitude")));
-            map.put("acX", cursor.getFloat(cursor.getColumnIndex("acX")));
-            map.put("acY", cursor.getFloat(cursor.getColumnIndex("acY")));
-            map.put("acZ", cursor.getFloat(cursor.getColumnIndex("acZ")));
-            map.put("gyX", cursor.getFloat(cursor.getColumnIndex("gyX")));
-            map.put("gyY", cursor.getFloat(cursor.getColumnIndex("gyY")));
-            map.put("gyZ", cursor.getFloat(cursor.getColumnIndex("gyZ")));
-            map.put("maX", cursor.getFloat(cursor.getColumnIndex("maX")));
-            map.put("maY", cursor.getFloat(cursor.getColumnIndex("maY")));
-            map.put("maZ", cursor.getFloat(cursor.getColumnIndex("maZ")));
-            map.put("veX", cursor.getFloat(cursor.getColumnIndex("veX")));
-            map.put("veY", cursor.getFloat(cursor.getColumnIndex("veY")));
-            map.put("veZ", cursor.getFloat(cursor.getColumnIndex("veZ")));
-            map.put("veCos", cursor.getFloat(cursor.getColumnIndex("veCos")));
-            map.put("veAccuracy", cursor.getFloat(cursor.getColumnIndex("veAccuracy")));
             map.put("pressure", cursor.getFloat(cursor.getColumnIndex("pressure")));
-            map.put("tmpDegree", cursor.getFloat(cursor.getColumnIndex("tmpDegree")));
-            map.put("humidity", cursor.getFloat(cursor.getColumnIndex("humidity")));
-            map.put("step", cursor.getInt(cursor.getColumnIndex("step")) == 1);
-            map.put("motion", cursor.getInt(cursor.getColumnIndex("motion")) == 1);
-            map.put("sigMotion", cursor.getInt(cursor.getColumnIndex("sigMotion")) == 1);
             cursor.close();
             return map;
         }else {
