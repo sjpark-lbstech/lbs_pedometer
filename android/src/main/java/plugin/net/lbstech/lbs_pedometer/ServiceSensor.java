@@ -377,10 +377,17 @@ public class ServiceSensor extends Service implements SensorEventListener {
                 lat = location.getLatitude();
                 lng = location.getLongitude();
             }
-
-
-
             sqlController.insert(lat, lng, pressure);
+            if(isAppAlive()){
+                try {
+                    Message msg = Message.obtain(null, MSG_SENSOR_TRIGGER);
+                    appMessenger.send(msg);
+                }catch (RemoteException e){
+                    Log.i("PEDOLOG_SM", "try to send, but Service doesn't exist.." +
+                            "\nmsg: MSG_LIFECYCLE_STOP");
+                    e.printStackTrace();
+                }
+            }
         }
     }
 }
