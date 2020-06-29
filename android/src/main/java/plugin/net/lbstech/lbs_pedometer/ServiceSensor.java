@@ -304,9 +304,10 @@ public class ServiceSensor extends Service implements SensorEventListener {
         long prevStamp = -1;
 
         private Location filterLocation(Location position){
+            Calendar now = Calendar.getInstance();
             if (prevPosition == null || prevStamp < 0) {
                 prevPosition = position;
-                prevStamp = Calendar.getInstance().getTimeInMillis();
+                prevStamp = now.getTimeInMillis();
                 return position;
             }
 
@@ -316,7 +317,6 @@ public class ServiceSensor extends Service implements SensorEventListener {
             double threshold = 5.5;
 
             double dist = distance(prevPosition, position);
-            Calendar now = Calendar.getInstance();
             double duration = (now.getTimeInMillis() - prevStamp) / 1000.0;
             if (dist/duration > threshold){
 //                // 임계값 벗어남 ..
