@@ -30,6 +30,8 @@ import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationResult;
 import com.google.android.gms.location.LocationServices;
 
+import java.util.Calendar;
+import java.util.Date;
 import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -46,7 +48,7 @@ public class ServiceSensor extends Service implements SensorEventListener {
     private Messenger appMessenger;
     private SQLController sqlController;
 
-    private int stepCnt;
+//    private int stepCnt;
     static int currentSavedStepCnt = 0;
     private Timer timer = new Timer();
     private SaveTask saveTask = new SaveTask();
@@ -58,23 +60,24 @@ public class ServiceSensor extends Service implements SensorEventListener {
 
     // fused location
     private Location location;
-    // TYPE_ACCELEROMETER
-    float acX, acY, acZ;
-    // TYPE_GYROSCOPE
-    float gyX, gyY, gyZ;
-    // TYPE_MAGNETIC_FIELD
-    float maX, maY, maZ;
     // TYPE_PRESSURE
     float pressure;
+
+//    // TYPE_ACCELEROMETER
+//    float acX, acY, acZ;
+//    // TYPE_GYROSCOPE
+//    float gyX, gyY, gyZ;
+//    // TYPE_MAGNETIC_FIELD
+//    float maX, maY, maZ;
     // TYPE_ROTATION_VECTOR
-    float veX, veY, veZ, veCos, veAccuracy;
-    // TYPE_AMBIENT_TEMPERATURE
-    float tmpDegree;
-    // TYPE_RELATIVE_HUMIDITY
-    float humidity;
-    // TYPE_MOTION_DETECT, TYPE_STEP_DETECTOR, TYPE_SIGNIFICANT_MOTION
-    // 해당 불린은 저장이후 false 로 변환
-    boolean step, motion, sigMotion;
+//    float veX, veY, veZ, veCos, veAccuracy;
+//    // TYPE_AMBIENT_TEMPERATURE
+//    float tmpDegree;
+//    // TYPE_RELATIVE_HUMIDITY
+//    float humidity;
+//    // TYPE_MOTION_DETECT, TYPE_STEP_DETECTOR, TYPE_SIGNIFICANT_MOTION
+//    // 해당 불린은 저장이후 false 로 변환
+//    boolean step, motion, sigMotion;
 
     // ==================================== anonymous class =====================================
     // message handler - APP 으로부터의 메세지를 다루는 익명 클래스
@@ -110,7 +113,7 @@ public class ServiceSensor extends Service implements SensorEventListener {
                 LocationServices.getFusedLocationProviderClient(getApplicationContext());
         sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
         sqlController = SQLController.getInstance(getApplicationContext());
-        stepCnt = 0;
+//        stepCnt = 0;
     }
 
     @Nullable
@@ -176,16 +179,9 @@ public class ServiceSensor extends Service implements SensorEventListener {
     private void sensorStart(){
         locationStart();
 
+        /// 사용하는 센서 목록
         int[] sensorTypes = new int[]{
-                Sensor.TYPE_ACCELEROMETER,
-                Sensor.TYPE_GYROSCOPE,
-                Sensor.TYPE_MAGNETIC_FIELD,
                 Sensor.TYPE_PRESSURE,
-                Sensor.TYPE_ROTATION_VECTOR,
-                Sensor.TYPE_STEP_DETECTOR,
-                Sensor.TYPE_AMBIENT_TEMPERATURE,
-                Sensor.TYPE_RELATIVE_HUMIDITY,
-                Sensor.TYPE_SIGNIFICANT_MOTION,
         };
         Sensor tmp;
         for (int type : sensorTypes) {
@@ -194,14 +190,11 @@ public class ServiceSensor extends Service implements SensorEventListener {
                 sensorManager.registerListener(this, tmp, SensorManager.SENSOR_DELAY_NORMAL);
             }
         }
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N){
-            Sensor motion = sensorManager.getDefaultSensor(Sensor.TYPE_MOTION_DETECT);
-            if (motion != null) {
-                sensorManager.registerListener(this, motion, SensorManager.SENSOR_DELAY_NORMAL);
-            }
-        }
 
-        timer.schedule(saveTask, 1000, 1000);
+        // 센서 저장하는 간격 (millisecond)
+        // 현제 1초당 1번씩 센서 저장
+        long term = 1000;
+        timer.schedule(saveTask, 1000, term);
     }
 
     private void locationStart() {
@@ -222,64 +215,66 @@ public class ServiceSensor extends Service implements SensorEventListener {
 
     @Override
     public void onSensorChanged(SensorEvent event) {
-        int type = event.sensor.getType();
+//        int type = event.sensor.getType();
         float[] values = event.values;
-        switch (type){
-            case Sensor.TYPE_STEP_DETECTOR :
-                step = true;
-                ++stepCnt;
-                currentSavedStepCnt = stepCnt;
-                if(stepCnt % 10 == 2 && location != null){
-                    if(isAppAlive()){
-                        try {
-                            Message msg = Message.obtain(null, MSG_SENSOR_TRIGGER);
-                            appMessenger.send(msg);
-                        }catch (RemoteException e){
-                            Log.i("PEDOLOG_SM", "try to send, but Service doesn't exist.." +
-                                    "\nmsg: MSG_LIFECYCLE_STOP");
-                            e.printStackTrace();
-                        }
-                    }
-                }
-                break;
-            case Sensor.TYPE_ACCELEROMETER :
-                acX = values[0];
-                acY = values[1];
-                acZ = values[2];
-                break;
-            case Sensor.TYPE_GYROSCOPE :
-                gyX = values[0];
-                gyY = values[1];
-                gyZ = values[2];
-                break;
-            case Sensor.TYPE_MAGNETIC_FIELD :
-                maX = values[0];
-                maY = values[1];
-                maZ = values[1];
-                break;
-            case Sensor.TYPE_ROTATION_VECTOR :
-                veX = values[0];
-                veY = values[1];
-                veZ = values[2];
-                veCos = values[3];
-                veAccuracy = values[4];
-                break;
-            case Sensor.TYPE_AMBIENT_TEMPERATURE :
-                tmpDegree = values[0];
-                break;
-            case Sensor.TYPE_RELATIVE_HUMIDITY :
-                humidity = values[0];
-                break;
-            case Sensor.TYPE_PRESSURE :
-                pressure = values[0];
-                break;
-            case Sensor.TYPE_MOTION_DETECT :
-                motion = true;
-                break;
-            case Sensor.TYPE_SIGNIFICANT_MOTION :
-                sigMotion = true;
-                break;
-        }
+//        switch (type){
+//            case Sensor.TYPE_STEP_DETECTOR :
+//                step = true;
+//                ++stepCnt;
+//                currentSavedStepCnt = stepCnt;
+//                if(stepCnt % 10 == 2 && location != null){
+//                    if(isAppAlive()){
+//                        try {
+//                            Message msg = Message.obtain(null, MSG_SENSOR_TRIGGER);
+//                            appMessenger.send(msg);
+//                        }catch (RemoteException e){
+//                            Log.i("PEDOLOG_SM", "try to send, but Service doesn't exist.." +
+//                                    "\nmsg: MSG_LIFECYCLE_STOP");
+//                            e.printStackTrace();
+//                        }
+//                    }
+//                }
+//                break;
+//            case Sensor.TYPE_ACCELEROMETER :
+//                acX = values[0];
+//                acY = values[1];
+//                acZ = values[2];
+//                break;
+//            case Sensor.TYPE_GYROSCOPE :
+//                gyX = values[0];
+//                gyY = values[1];
+//                gyZ = values[2];
+//                break;
+//            case Sensor.TYPE_MAGNETIC_FIELD :
+//                maX = values[0];
+//                maY = values[1];
+//                maZ = values[1];
+//                break;
+//            case Sensor.TYPE_ROTATION_VECTOR :
+//                veX = values[0];
+//                veY = values[1];
+//                veZ = values[2];
+//                veCos = values[3];
+//                veAccuracy = values[4];
+//                break;
+//            case Sensor.TYPE_AMBIENT_TEMPERATURE :
+//                tmpDegree = values[0];
+//                break;
+//            case Sensor.TYPE_RELATIVE_HUMIDITY :
+//                humidity = values[0];
+//                break;
+//            case Sensor.TYPE_PRESSURE :
+//                pressure = values[0];
+//                break;
+//            case Sensor.TYPE_MOTION_DETECT :
+//                motion = true;
+//                break;
+//            case Sensor.TYPE_SIGNIFICANT_MOTION :
+//                sigMotion = true;
+//                break;
+//        }
+
+        pressure = values[0];
     }
 
     @Override
@@ -299,7 +294,88 @@ public class ServiceSensor extends Service implements SensorEventListener {
             if (locationResult != null){
                 List<Location> locationList = locationResult.getLocations();
                 location = locationList.get(locationList.size() - 1);
+                location = filterLocation(location);
             }
+        }
+
+
+        // ================================= 하이필터 =======================================
+        Location prevPosition;
+        long prevStamp = -1;
+
+        private Location filterLocation(Location position){
+            if (prevPosition == null || prevStamp < 0) {
+                prevPosition = position;
+                prevStamp = Calendar.getInstance().getTimeInMillis();
+                return position;
+            }
+
+            // 전동 휠체어의 최고 속도는 4.1m/sec 이다.
+            // 오차범위를 포함한 임계값은 5.5m 로 설정한다. GPS의 변화량이 초당 5.5를 넘으면
+            // 이전의 위치로 수정한다.
+            double threshold = 5.5;
+
+            double dist = distance(prevPosition, position);
+            Calendar now = Calendar.getInstance();
+            double duration = (now.getTimeInMillis() - prevStamp) / 1000.0;
+            if (dist/duration > threshold){
+//                // 임계값 벗어남 ..
+//                double axisX = position.getLatitude() - prevPosition.getLatitude();
+//                double axisY = position.getLongitude() - prevPosition.getLongitude();
+//                double fixedX, fixedY;
+//                if (axisX == 0){
+//
+//                }
+//
+//                double ratio = axisX / axisY;
+//
+//                // axisX = axisY * ratio;
+//                fixedX = Math.sqrt(Math.pow(threshold, 2) / (Math.pow(ratio, 2) +1));
+//                fixedY = fixedX / ratio;
+//
+//                if (ratio > 0) {
+//                    // 제 1, 3 사분면 (둘다 양수 아니면 음수)
+//                    if (axisX < 0) {
+//
+//                    }else {
+//
+//                    }
+//                }else {
+//                    // 제 2, 4 사분면 (둘중 하나만 음수)
+//
+//                }
+//
+//                position.setLatitude(prevPosition.getLatitude() + fixedX);
+//                position.setLongitude(prevPosition.getLongitude() + fixedY);
+                position = prevPosition;
+            }else {
+                prevPosition = position;
+            }
+            prevStamp = now.getTimeInMillis();
+            return position;
+        }
+
+
+        private double distance(Location a, Location b) {
+            double lat1, lon1, lat2, lon2;
+            lat1 = a.getLatitude();
+            lon1 = a.getLongitude();
+            lat2 = b.getLatitude();
+            lon2 = b.getLongitude();
+
+            double theta = lon1 - lon2;
+            double dist = Math.sin(Math.toRadians(lat1)) * Math.sin(Math.toRadians(lat2))
+                    + Math.cos(Math.toRadians(lat1)) * Math.cos(Math.toRadians(lat2))
+                        * Math.cos(Math.toRadians(theta));
+
+            dist = Math.acos(dist);
+            dist = Math.toDegrees(dist);
+            dist = dist * 60 * 1.1515;
+
+            // meter 단위
+            dist = dist * 1609.344;
+
+            return (dist);
         }
     }
 
@@ -314,12 +390,10 @@ public class ServiceSensor extends Service implements SensorEventListener {
                 lat = location.getLatitude();
                 lng = location.getLongitude();
             }
-            sqlController.insert(stepCnt, lat, lng,
-                    acX, acY, acZ, gyX, gyY, gyZ, maX, maY, maZ, veX, veY, veZ, veCos, veAccuracy,
-                    pressure, tmpDegree, humidity, step, motion, sigMotion);
-            step = false;
-            motion = false;
-            sigMotion = false;
+
+
+
+            sqlController.insert(lat, lng, pressure);
         }
     }
 }
