@@ -9,6 +9,9 @@ import android.util.Log;
 
 import androidx.annotation.NonNull;
 
+import com.google.android.gms.common.api.GoogleApiClient;
+import com.google.android.gms.location.LocationServices;
+
 import java.nio.channels.Channel;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -33,6 +36,8 @@ public class LbsPedometerPlugin implements FlutterPlugin,
 
   private static LocationHandler locationHandler;
   private static ServiceManager serviceManager;
+
+  private GoogleApiClient googleApiClient;
 
   private static Context applicationContext;
   private static Activity activity;
@@ -173,6 +178,12 @@ public class LbsPedometerPlugin implements FlutterPlugin,
     // 실제로는 호출 되지 않음.
     Log.i("PEDOLOG_PP", "onCreated");
     channel.setMethodCallHandler(this);
+
+    if (googleApiClient == null){
+      googleApiClient = new GoogleApiClient.Builder(activity.getApplicationContext())
+              .addApi(LocationServices.API)
+              .build();
+    }
   }
 
   @Override
@@ -182,6 +193,13 @@ public class LbsPedometerPlugin implements FlutterPlugin,
     if (serviceManager == null) return;
     isServiceRunning = isServiceRunning(ServiceSensor.class);
     serviceManager.onStarted(isServiceRunning);
+
+    if (googleApiClient == null){
+      googleApiClient = new GoogleApiClient.Builder(activity.getApplicationContext())
+              .addApi(LocationServices.API)
+              .build();
+      googleApiClient.connect();
+    }
   }
 
   @Override
@@ -191,17 +209,34 @@ public class LbsPedometerPlugin implements FlutterPlugin,
       ArrayList<HashMap<String, Object>> list = SQLController.getInstance(applicationContext).getHistory();
       channel.invokeMethod("androidResume", list);
     }
+
+    if (googleApiClient == null){
+      googleApiClient = new GoogleApiClient.Builder(activity.getApplicationContext())
+              .addApi(LocationServices.API)
+              .build();
+      googleApiClient.connect();
+    }
   }
 
   @Override
   public void onActivityPaused(Activity activity) {
     Log.i("PEDOLOG_PP", "onPaused");
+
+    if (googleApiClient == null){
+      googleApiClient = new GoogleApiClient.Builder(activity.getApplicationContext())
+              .addApi(LocationServices.API)
+              .build();
+    }
   }
 
   @Override
   public void onActivityStopped(Activity activity) {
     Log.i("PEDOLOG_PP", "onStopped");
     serviceManager.onStopped();
+
+    if (googleApiClient != null){
+      googleApiClient.disconnect();
+    }
   }
 
   @Override
@@ -214,6 +249,10 @@ public class LbsPedometerPlugin implements FlutterPlugin,
     if (initialActivityHashCode != null && initialActivityHashCode.intValue() == activity.hashCode()) {
       channel.setMethodCallHandler(null);
       activity.getApplication().unregisterActivityLifecycleCallbacks(this);
+    }
+
+    if (googleApiClient != null){
+      googleApiClient.disconnect();
     }
   }
 
