@@ -15,10 +15,6 @@ class Pedometer{
   /// [StepData]객체로 반환하는 Callback.
   OnTakeStep _onTakeStep;
 
-  /// android 의 lifecycle 에서 onResume 이 호출됬을때
-  /// 현재 Service 가 실행중인 경우에는 pause 이후 축적된 데이터가 [StepData]의 List 들로 반환한다.
-  /// Service 가 실행되지 않는 경우에는 null 이 반환된다.
-  OnAndroidResumed _onAndroidResumed;
 
   /// android 에서 위치 추적을 종료하는 경우 시작부터 종료까지의 모든 데이터를
   /// [StepData]의 List 들로 반환한다.
@@ -33,9 +29,8 @@ class Pedometer{
   ///
   /// onAndroidStarted 함수는 안드로이드가 종료된 이후 다시 시작했을때
   /// 이전까지 기록된 센서 값을 반환한다.
-  Future<void> start({OnTakeStep onTakeStep, OnAndroidResumed onAndroidResumed}) {
+  Future<void> start({OnTakeStep onTakeStep}) {
     _onTakeStep = onTakeStep;
-    _onAndroidResumed = onAndroidResumed;
     _controller.start();
     return null;
   } 
@@ -53,14 +48,6 @@ class Pedometer{
   /// permission 을 요청하는 함수
   Future<void> requestPermission() async {
     return _controller.requestPermission();
-  }
-
-  /// 현제 위치를 가져오는 일회성 함수이다.
-  ///
-  ///
-  /// @return type : [Coordinate]
-  Future<Coordinate> getLocation(){
-    return _controller.getLocation();
   }
 
   /// ios 의 현제 권한 상태를 가져온다.
@@ -83,7 +70,7 @@ class Pedometer{
 
   /// 백그라운드에서 SQLite 데이터가 기록되고 있는 중인경우
   /// 해당 함수를 호출하는 시점 이전의 모든 기록을 가져오는 함수.
-  Future<List<StepData>> getHistory() async{
+  Future<List<Coordinate>> getHistory() async{
     if (Platform.isIOS) { return null; }
     return _controller.getHistory();
   }

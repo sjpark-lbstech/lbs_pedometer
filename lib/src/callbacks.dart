@@ -1,7 +1,7 @@
 part of lbs_pedometer;
 
-typedef OnTakeStep = void Function(StepData stepData);
+typedef OnTakeStep = void Function(Coordinate coordinate);
 
-typedef OnAndroidResumed = void Function(List<StepData> stepList);
+typedef OnAndroidResumed = void Function(List<Coordinate> coordinates);
 
-typedef OnEnd = void Function(List<StepData> stepList);
+typedef OnEnd = void Function(List<Coordinate> coordinates);

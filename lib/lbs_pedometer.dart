@@ -11,6 +11,5 @@ part 'src/method_name.dart';
 part 'src/controller.dart';
 part 'src/coordinate.dart';
 part 'src/authorization_state.dart';
-part 'src/step_data.dart';
 
 const String _CHANNEL_NAME = 'lbstech.net.plugin/lbs_pedoemter';

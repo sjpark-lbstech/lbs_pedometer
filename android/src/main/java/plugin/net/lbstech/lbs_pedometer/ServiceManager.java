@@ -6,6 +6,7 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
+import android.location.Location;
 import android.os.Build;
 import android.os.Handler;
 import android.os.IBinder;
@@ -19,6 +20,7 @@ import androidx.core.content.ContextCompat;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 
 public class ServiceManager implements ServiceConnection {
     private final int MSG_INIT = 0XAA1;
@@ -61,9 +63,9 @@ public class ServiceManager implements ServiceConnection {
     }
 
     // 서비스 종료
-    ArrayList<HashMap<String, Object>> serviceStop(){
+    ArrayList<double[]> serviceStop(){
         if (isServiceConnected()) {
-            ArrayList<HashMap<String, Object>> result = sqlController.getHistory();
+            ArrayList<double[]> result = sqlController.getHistory();
             try {
                 context.unbindService(this);
                 Intent serviceIntent = new Intent(context, ServiceSensor.class);
@@ -158,9 +160,9 @@ public class ServiceManager implements ServiceConnection {
             int data = msg.what;
             if (data == MSG_SENSOR_TRIGGER) {
                 Log.i("PEDOLOG_SM", "receive trigger.");
-                plugin.sendDataToFlutter(
-                        sqlController.getCurrentWhereStep(ServiceSensor.currentSavedStepCnt)
-                );
+                Location last = ServiceSensor.currentSavedLocation;
+                if (last == null) return;
+                plugin.sendDataToFlutter(new double[]{last.getLatitude(), last.getLongitude()});
             }
             super.handleMessage(msg);
         }

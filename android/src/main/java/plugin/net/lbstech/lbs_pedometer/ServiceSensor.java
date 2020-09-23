@@ -7,10 +7,6 @@ import android.app.NotificationManager;
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
-import android.hardware.Sensor;
-import android.hardware.SensorEvent;
-import android.hardware.SensorEventListener;
-import android.hardware.SensorManager;
 import android.location.Location;
 import android.os.Build;
 import android.os.Bundle;
@@ -19,7 +15,6 @@ import android.os.IBinder;
 import android.os.Message;
 import android.os.Messenger;
 import android.os.RemoteException;
-import android.util.Log;
 
 import androidx.annotation.Nullable;
 import androidx.core.app.NotificationCompat;
@@ -32,7 +27,9 @@ import com.google.android.gms.location.LocationServices;
 
 import java.util.List;
 
-public class ServiceSensor extends Service implements SensorEventListener {
+import io.flutter.Log;
+
+public class ServiceSensor extends Service{
     private final int MSG_INIT = 0XAA1;
     private final int MSG_SENSOR_TRIGGER = 0XAA2;
     private final int MSG_LIFECYCLE_START = 0XAA3;
@@ -40,14 +37,11 @@ public class ServiceSensor extends Service implements SensorEventListener {
 
     private FusedLocationProviderClient fusedLocationProviderClient;
     private LocationCallback locationCallback;
-    private SensorManager sensorManager;
     private Messenger appMessenger;
     private SQLController sqlController;
 
-    private Location location;
-    private int stepCnt;
-    static int currentSavedStepCnt = 0;
-    private boolean isAppAlive() { return appMessenger != null; }
+    static Location currentSavedLocation;
+    boolean isAppAlive() { return appMessenger != null; }
 
     // ==================================== anonymous class =====================================
     // message handler - APP 으로부터의 메세지를 다루는 익명 클래스
@@ -81,9 +75,7 @@ public class ServiceSensor extends Service implements SensorEventListener {
         super.onCreate();
         fusedLocationProviderClient =
                 LocationServices.getFusedLocationProviderClient(getApplicationContext());
-        sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
         sqlController = SQLController.getInstance(getApplicationContext());
-        stepCnt = 0;
     }
 
     @Nullable
@@ -148,54 +140,54 @@ public class ServiceSensor extends Service implements SensorEventListener {
     // MSG_INIT 받으면 호출
     private void sensorStart(){
         locationStart();
-        if (sensorManager.getDefaultSensor(Sensor.TYPE_STEP_DETECTOR) != null) {
-            Sensor stepSensor = sensorManager.getDefaultSensor(Sensor.TYPE_STEP_DETECTOR);
-            sensorManager.registerListener(this, stepSensor, SensorManager.SENSOR_DELAY_NORMAL);
-        }
     }
 
     private void locationStart() {
+        // 시작할때 flush.
+        fusedLocationProviderClient.flushLocations();
+
         locationCallback = new PedometerLocationCallback();
         LocationRequest request = LocationRequest.create();
-        request.setInterval(100);
+        request.setInterval(10000);
+        request.setFastestInterval(10000);
+        request.setMaxWaitTime(20010);
         request.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
         fusedLocationProviderClient.requestLocationUpdates(request, locationCallback, null);
     }
 
     // onDestroy 에서 호출
     private void sensorStop() {
-        sensorManager.unregisterListener(this);
         fusedLocationProviderClient.removeLocationUpdates(locationCallback);
         locationCallback = null;
     }
 
-    @Override
-    public void onSensorChanged(SensorEvent event) {
-        int type = event.sensor.getType();
-        switch (type){
-            case Sensor.TYPE_STEP_DETECTOR :
-                ++stepCnt;
-                Log.i("PEDOLOG_SS", "step detector. Steps : " + stepCnt);
-                if(stepCnt % 10 == 2 && location != null){
-                    currentSavedStepCnt = stepCnt;
-                    sqlController.insert(stepCnt, location.getLatitude(), location.getLongitude());
-                    if(isAppAlive()){
-                        try {
-                            Message msg = Message.obtain(null, MSG_SENSOR_TRIGGER);
-                            appMessenger.send(msg);
-                        }catch (RemoteException e){
-                            Log.i("PEDOLOG_SM", "try to send, but Service doesn't exist.." +
-                                    "\nmsg: MSG_LIFECYCLE_STOP");
-                            e.printStackTrace();
-                        }
-                    }
-                }
-                break;
-        }
-    }
-
-    @Override
-    public void onAccuracyChanged(Sensor sensor, int accuracy) {}
+//    @Override
+//    public void onSensorChanged(SensorEvent event) {
+//        int type = event.sensor.getType();
+//        switch (type){
+//            case Sensor.TYPE_STEP_DETECTOR :
+//                ++stepCnt;
+//                Log.i("PEDOLOG_SS", "step detector. Steps : " + stepCnt);
+//                if(stepCnt % 10 == 2 && location != null){
+//                    currentSavedStepCnt = stepCnt;
+//                    sqlController.insert(stepCnt, location.getLatitude(), location.getLongitude());
+//                    if(isAppAlive()){
+//                        try {
+//                            Message msg = Message.obtain(null, MSG_SENSOR_TRIGGER);
+//                            appMessenger.send(msg);
+//                        }catch (RemoteException e){
+//                            Log.i("PEDOLOG_SM", "try to send, but Service doesn't exist.." +
+//                                    "\nmsg: MSG_LIFECYCLE_STOP");
+//                            e.printStackTrace();
+//                        }
+//                    }
+//                }
+//                break;
+//        }
+//    }
+//
+//    @Override
+//    public void onAccuracyChanged(Sensor sensor, int accuracy) {}
 
 
     // ================================== inner class ===========================================
@@ -210,7 +202,23 @@ public class ServiceSensor extends Service implements SensorEventListener {
             }
             if (locationResult != null){
                 List<Location> locationList = locationResult.getLocations();
-                location = locationList.get(locationList.size() - 1);
+                if (isAppAlive()) {
+                    currentSavedLocation = locationList.get(locationList.size() -1);
+                    try {
+                        Message msg = Message.obtain(null, MSG_SENSOR_TRIGGER);
+                        appMessenger.send(msg);
+                    } catch (RemoteException e) {
+                        Log.i("PEDOLOG_SM", "try to send, but Service doesn't exist.." +
+                                "\nmsg: MSG_LIFECYCLE_STOP");
+                        e.printStackTrace();
+                    }
+                }
+                int len = locationList.size();
+                Log.i("PEDOLOG_SS", "위치 갱신");
+                for (int i = 0; i < len; i++) {
+                    Log.i("PEDOLOG_SS", i + ":" + locationList.get(i).getLatitude() + ", " + locationList.get(i).getLongitude());
+                    sqlController.insert(locationList.get(i).getLatitude(), locationList.get(i).getLongitude());
+                }
             }
         }
     }

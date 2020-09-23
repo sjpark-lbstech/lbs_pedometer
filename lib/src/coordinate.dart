@@ -9,4 +9,12 @@ class Coordinate{
 
   Coordinate({this.latitude = 0.0, this.longitude = 0.0});
 
+  factory Coordinate._fromJson(List data){
+    return Coordinate(latitude: data[0], longitude: data[1]);
+  }
+
+  @override
+  String toString() {
+    return 'Coordinate >> 위경도 : $latitude, $longitude';
+  }
 }

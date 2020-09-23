@@ -92,7 +92,7 @@ public class LbsPedometerPlugin implements FlutterPlugin,
     else if (call.method.equals("stop"))
     {
       Log.i("PEDOLOG_PP", "stop method called");
-      ArrayList<HashMap<String, Object>> list = serviceManager.serviceStop();
+      ArrayList<double[]> list = serviceManager.serviceStop();
       result.success(list);
     }
     else if (call.method.equals("requestPermission"))
@@ -105,14 +105,14 @@ public class LbsPedometerPlugin implements FlutterPlugin,
     else if(call.method.equals("getHistory"))
     {
       Log.i("PEDOLOG_PP", "getHistory method called");
-      ArrayList<HashMap<String, Object>> list = SQLController.getInstance(applicationContext).getHistory();
+      ArrayList<double[]> list = SQLController.getInstance(applicationContext).getHistory();
       result.success(list);
     }
 
   }
 
-  void sendDataToFlutter(HashMap<String, Object> map){
-    channel.invokeMethod("takeSteps", map);
+  void sendDataToFlutter(Object data){
+    channel.invokeMethod("takeSteps", data);
   }
 
   private boolean isServiceRunning(Class<?> serviceClass) {
@@ -188,7 +188,7 @@ public class LbsPedometerPlugin implements FlutterPlugin,
   public void onActivityResumed(Activity activity) {
     Log.i("PEDOLOG_PP", "onResumed");
     if(isServiceRunning){
-      ArrayList<HashMap<String, Object>> list = SQLController.getInstance(applicationContext).getHistory();
+      ArrayList<double[]> list = SQLController.getInstance(applicationContext).getHistory();
       channel.invokeMethod("androidResume", list);
     }
   }

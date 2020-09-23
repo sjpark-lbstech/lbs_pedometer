@@ -12,14 +12,11 @@ class _PedometerController{
 
       if(call.method == _MTD_TAKE_STEPS){
         if (pedometer._onTakeStep != null){
-          pedometer._onTakeStep(StepData.fromMap(call.arguments));
-        }
-      }else if(call.method == _MTD_ANDROID_RESUME){
-        if (pedometer._onAndroidResumed != null){
-          pedometer._onAndroidResumed(_convertToStepData(call.arguments));
+          List data = call.arguments;
+          final last = Coordinate(latitude: data[0], longitude: data[1]);
+          pedometer._onTakeStep(last);
         }
       }
-
       return null;
     });
   }
@@ -39,7 +36,11 @@ class _PedometerController{
   Future<void> stop() async{
     List list = await _channel.invokeMethod(_MTD_STOP);
     if (list != null && list.isNotEmpty && pedometer._onEnd != null){
-       pedometer._onEnd(_convertToStepData(list));
+      List<Coordinate> coordinates = [];
+      list.forEach((coordinateData) {
+        coordinates.add(Coordinate._fromJson(coordinateData));
+      });
+      pedometer._onEnd(coordinates);
     }else{
       print('종료 이후 이전 기록 가져오기의 결과가 비어 있습니다.');
       return null;
@@ -48,15 +49,6 @@ class _PedometerController{
 
   Future<void> requestPermission() async{
     await _channel.invokeMethod(_MTD_REQUEST_PERMISSION);
-  }
-
-  Future<Coordinate> getLocation() async{
-    Map arg = await _channel.invokeMethod(_MTD_GET_LOCATION);
-    if (arg == null){
-      AssertionError('argument from nvative method call[getLocation] is null.');
-      return null;
-    }
-    return Coordinate(latitude: arg['lat'], longitude: arg['lng']);
   }
 
   Future<AuthorizationState> getAuthorizationState() async{
@@ -70,22 +62,26 @@ class _PedometerController{
     return;
   }
 
-  Future<List<StepData>> getHistory() async{
+  Future<List<Coordinate>> getHistory() async{
     List list = await _channel.invokeMethod<List>(_MTD_GET_HISTORY);
     if (list != null && list.isNotEmpty){
-      return _convertToStepData(list);
+      return _convertToCoordinate(list);
     }else{
       print('이전 기록 가져오기의 결과가 비어 있습니다.');
       return null;
     }
   }
 
-  List<StepData> _convertToStepData(List list) {
-    List<StepData> result = List();
-    for(Map row in list){
-      result.add(StepData.fromMap(row));
-    }
-    return result;
+  // List<StepData> _convertToStepData(List list) {
+  //   List<StepData> result = List();
+  //   for(Map row in list){
+  //     result.add(StepData.fromMap(row));
+  //   }
+  //   return result;
+  // }
+
+  List<Coordinate> _convertToCoordinate(List list){
+    return list.map((e) => Coordinate._fromJson(e)).toList();
   }
 
 }
