@@ -18,7 +18,6 @@ class SensorController: NSObject, CLLocationManagerDelegate {
     let STATE_ALWAYS = 4
     
     let locationManager = CLLocationManager()
-    let pedometer = CMPedometer()
     let channel : FlutterMethodChannel
     let sql = SQLController.instance
     
@@ -36,6 +35,11 @@ class SensorController: NSObject, CLLocationManagerDelegate {
     func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
         if let last = locations.last {
             location = last
+            self.channel.invokeMethod("takeSteps", arguments: [location?.coordinate.latitude, location?.coordinate.longitude])
+            
+            if self.sql.isAvailable() {
+                self.sql.insert(lat: location!.coordinate.latitude , lng: location!.coordinate.longitude)
+            }
         }
     }
     
@@ -69,60 +73,30 @@ class SensorController: NSObject, CLLocationManagerDelegate {
         locationManager.startUpdatingLocation()
         locationManager.startMonitoringSignificantLocationChanges()
         
-        isRunning = true;
+        isRunning = true
+        UserDefaults.standard.set(true, forKey: "isRunning")
         
-        print("ios pedometer and location sensor turn on.")
-        pedometer.startUpdates(from: Date(), withHandler: { (data, error) in
-            if data?.numberOfSteps != self.pedoStep {
-                let timeStemp : Int = Int(data!.endDate.timeIntervalSince1970 * 100)
-                let stepCnt : Int = Int(truncating: data!.numberOfSteps)
-                self.pedoStep = data!.numberOfSteps
-                if let pos = self.location {
-                    let map : [String : Any] = [
-                        "timestamp" : timeStemp,
-                        "step" : stepCnt,
-                        "latitude" : pos.coordinate.latitude,
-                        "longitude" : pos.coordinate.longitude,
-                    ]
-                    self.channel.invokeMethod("takeSteps", arguments: map)
-                    
-                    if self.sql.isAvailable() {
-                        self.sql.insert(step: stepCnt, lat: pos.coordinate.latitude, lng: pos.coordinate.longitude, timestamp: timeStemp)
-                    }
-                }
-                
-            }
-        })
+        print("ios location sensor turn on.")
     }
     
-    func stop() -> [[String : Any]]{
-        pedometer.stopUpdates()
-        var result : [[String : Any]] = []
+    func stop() -> [[Double]]{
+        locationManager.stopMonitoringSignificantLocationChanges()
+        locationManager.stopUpdatingLocation()
+        
+        var result : [[Double]] = []
         if sql.isAvailable() {
             result = sql.selctAll()
             sql.cleanDB()
         }
         isRunning = false;
+        UserDefaults.standard.set(false, forKey: "isRunning")
         print("ios pedometer and location sensor turn off.")
         return result
     }
     
-    func getLocation() -> [String : Double]{
-        if state != STATE_WHEN_IN_USE && state != STATE_ALWAYS {
-            locationManager.requestAlwaysAuthorization()
-        }
-        let coordinate : CLLocationCoordinate2D
-        if location?.coordinate != nil {
-            coordinate = location!.coordinate
-        }else {
-            coordinate = locationManager.location?.coordinate
-                ?? CLLocationCoordinate2D(latitude: 0.0, longitude: 0.0)
-        }
-        let map : [String : Double] = [
-            "lat" : coordinate.latitude,
-            "lng" : coordinate.longitude
-        ]
-        return map
-    }
     
+    func pause() {
+        locationManager.stopMonitoringSignificantLocationChanges()
+        locationManager.stopUpdatingLocation()
+    }
 }

@@ -28,22 +28,21 @@ class SQLController : NSObject{
             print("DB 열기 실패");
         }
         print("DB 오픈 성공");
-        print(fileURL)
         if sqlite3_exec(dataBase,
           "CREATE TABLE IF NOT EXISTS step (" +
             "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
-            "step INTEGER, " +
-            "timestamp INTEGER, " +
             "latitude REAL, " +
             "longitude REAL)",
           nil,
           nil,
           nil) != SQLITE_OK {
-            
             let errmsg = String(cString: sqlite3_errmsg(dataBase)!)
             print("error creating table: \(errmsg)")
         }else {
-            cleanDB()
+            if !UserDefaults.standard.bool(forKey: "isRunning") {
+                // 위치 추적이 끝나지 않은 경우
+                cleanDB()
+            }
         }
     }
     
@@ -61,20 +60,15 @@ class SQLController : NSObject{
     
     /// 만들어진 DB에 요소를 전달받아 insert하는 메서드.
     /// - Parameters:
-    ///   - step: 걸음 수
     ///   - lat: 위도
     ///   - lng: 경도
-    ///   - timestamp: milli seceond from 1970
-    func insert(step:Int, lat:Double, lng:Double, timestamp:Int){
-        let insertQuery = "INSERT INTO step (step, timestamp, latitude, longitude) VALUES (?, ?, ?, ?)";
+    func insert(lat:Double, lng:Double){
+        let insertQuery = "INSERT INTO step (latitude, longitude) VALUES (?, ?)";
         
         var insertStatement : OpaquePointer?
         if sqlite3_prepare(dataBase, insertQuery, -1, &insertStatement, nil) == SQLITE_OK {
-            
-            sqlite3_bind_int64(insertStatement, 1, sqlite3_int64(step))
-            sqlite3_bind_int64(insertStatement, 2, sqlite_int64(timestamp))
-            sqlite3_bind_double(insertStatement, 3, lat)
-            sqlite3_bind_double(insertStatement, 4, lng)
+            sqlite3_bind_double(insertStatement, 1, lat)
+            sqlite3_bind_double(insertStatement, 2, lng)
             
             if sqlite3_step(insertStatement) == SQLITE_DONE {
               print("\nSuccessfully inserted row.")
@@ -91,25 +85,20 @@ class SQLController : NSObject{
 
     
     /// 저장된 데이터 모두 가져와서 Dictionary 의 List로 반환.
-    func selctAll() -> [[String : Any]]{
+    func selctAll() -> [[Double]]{
         let selectString = "SELECT * FROM step;"
         var selectStatement: OpaquePointer?
-        var result : [[String : Any]] = []
+        var result : [[Double]] = []
         
         if sqlite3_prepare_v2(dataBase, selectString, -1, &selectStatement, nil) != SQLITE_OK {
             print("문법상의 에러 발생")
             return []
         }
         while sqlite3_step(selectStatement) == SQLITE_ROW {
-            let step = sqlite3_column_int64(selectStatement, 1)
-            let timeStamp = sqlite3_column_int64(selectStatement, 2)
-            let latitude = sqlite3_column_double(selectStatement, 3)
-            let longitude = sqlite3_column_double(selectStatement, 4)
+            let latitude = sqlite3_column_double(selectStatement, 1)
+            let longitude = sqlite3_column_double(selectStatement, 2)
             result.append([
-                "step" : step,
-                "timestamp" : timeStamp,
-                "latitude" : latitude,
-                "longitude" : longitude
+                latitude, longitude,
             ])
         }
         return result

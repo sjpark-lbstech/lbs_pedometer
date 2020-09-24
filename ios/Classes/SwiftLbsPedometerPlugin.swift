@@ -14,6 +14,10 @@ public class SwiftLbsPedometerPlugin: NSObject, FlutterPlugin {
     registrar.addApplicationDelegate(instance)
     
     controller = SensorController(channel: SwiftLbsPedometerPlugin.channel!)
+    let isRunning = UserDefaults.standard.bool(forKey: "isRunning")
+    if isRunning {
+        controller?.start()
+    }
   }
 
   public func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
@@ -24,12 +28,12 @@ public class SwiftLbsPedometerPlugin: NSObject, FlutterPlugin {
         cont.start()
     }else if call.method == "stop" {
         arg = cont.stop()
-    }else if call.method == "getLocation"{
-        arg = cont.getLocation()
     }else if call.method == "getState" {
         arg = cont.state
     }else if call.method == "requestPermission" {
         cont.requestPermission()
+    }else if call.method == "getHistory"{
+        arg = SQLController.instance.selctAll()
     }
     
     result(arg)
@@ -40,9 +44,9 @@ public class SwiftLbsPedometerPlugin: NSObject, FlutterPlugin {
         print("application Will Terminate call backs")
         guard let cont = SwiftLbsPedometerPlugin.controller else { return }
         if cont.isRunning {
-            _ = cont.stop()
+            _ = cont.pause()
         }
     }
-    
+
     
 }
