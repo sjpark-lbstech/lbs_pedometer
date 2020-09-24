@@ -15,11 +15,6 @@ class Pedometer{
   /// [StepData]객체로 반환하는 Callback.
   OnTakeStep _onTakeStep;
 
-
-  /// android 에서 위치 추적을 종료하는 경우 시작부터 종료까지의 모든 데이터를
-  /// [StepData]의 List 들로 반환한다.
-  OnEnd _onEnd;
-
   /// ios의 pedometer 의 이벤트를 받기 시작한다.
   /// 이때 CLLocationManager 를 이용한 위치 변경 이벤트도 같이 받는다.
   ///
@@ -38,11 +33,9 @@ class Pedometer{
   /// 현제 pedometer의 이벤트를 받고 있을 경우 해당 이벤트 스트림을 취소한다.
   ///
   /// onAndroidStop 의 경우 안드로이드에서만 호출되는 함수이며, 최종 기록들을 모두 불러온다.
-  Future<void> stop({OnEnd onEnd}){
-    _onEnd = onEnd;
+  Future<List<Coordinate>> stop(){
     _onTakeStep = null;
-    _controller.stop();
-    return null;
+    return _controller.stop() ?? [];
   }
 
   /// permission 을 요청하는 함수

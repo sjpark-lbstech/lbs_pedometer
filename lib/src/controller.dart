@@ -33,14 +33,14 @@ class _PedometerController{
     }
   }
 
-  Future<void> stop() async{
+  Future<List<Coordinate>> stop() async{
     List list = await _channel.invokeMethod(_MTD_STOP);
-    if (list != null && list.isNotEmpty && pedometer._onEnd != null){
+    if (list != null && list.isNotEmpty){
       List<Coordinate> coordinates = [];
       list.forEach((coordinateData) {
         coordinates.add(Coordinate._fromJson(coordinateData));
       });
-      pedometer._onEnd(coordinates);
+      return coordinates;
     }else{
       print('종료 이후 이전 기록 가져오기의 결과가 비어 있습니다.');
       return null;
