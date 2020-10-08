@@ -19,8 +19,6 @@ import androidx.annotation.NonNull;
 import androidx.core.content.ContextCompat;
 
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
 
 public class ServiceManager implements ServiceConnection {
     private final int MSG_INIT = 0XAA1;

@@ -112,11 +112,8 @@ class _MyAppState extends State<MyApp> {
   }
 
   void clickStop() async{
-    _pedometer.stop(onEnd: (coordinates){
-      for(Coordinate data in coordinates){
-        print(data);
-      }
-    });
+    final coordinates = await _pedometer.stop();
+    coordinates.forEach((element) => print(element));
     _history.clear();
     if (mounted){
       setState(() { });

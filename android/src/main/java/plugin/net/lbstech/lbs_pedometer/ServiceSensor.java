@@ -25,6 +25,7 @@ import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationResult;
 import com.google.android.gms.location.LocationServices;
 
+import java.util.Calendar;
 import java.util.List;
 
 import io.flutter.Log;
@@ -41,6 +42,8 @@ public class ServiceSensor extends Service{
     private SQLController sqlController;
 
     static Location currentSavedLocation;
+    static Calendar startTime;
+
     boolean isAppAlive() { return appMessenger != null; }
 
     // ==================================== anonymous class =====================================
@@ -153,6 +156,8 @@ public class ServiceSensor extends Service{
         request.setMaxWaitTime(20010);
         request.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
         fusedLocationProviderClient.requestLocationUpdates(request, locationCallback, null);
+
+        startTime = Calendar.getInstance();
     }
 
     // onDestroy 에서 호출
@@ -160,34 +165,6 @@ public class ServiceSensor extends Service{
         fusedLocationProviderClient.removeLocationUpdates(locationCallback);
         locationCallback = null;
     }
-
-//    @Override
-//    public void onSensorChanged(SensorEvent event) {
-//        int type = event.sensor.getType();
-//        switch (type){
-//            case Sensor.TYPE_STEP_DETECTOR :
-//                ++stepCnt;
-//                Log.i("PEDOLOG_SS", "step detector. Steps : " + stepCnt);
-//                if(stepCnt % 10 == 2 && location != null){
-//                    currentSavedStepCnt = stepCnt;
-//                    sqlController.insert(stepCnt, location.getLatitude(), location.getLongitude());
-//                    if(isAppAlive()){
-//                        try {
-//                            Message msg = Message.obtain(null, MSG_SENSOR_TRIGGER);
-//                            appMessenger.send(msg);
-//                        }catch (RemoteException e){
-//                            Log.i("PEDOLOG_SM", "try to send, but Service doesn't exist.." +
-//                                    "\nmsg: MSG_LIFECYCLE_STOP");
-//                            e.printStackTrace();
-//                        }
-//                    }
-//                }
-//                break;
-//        }
-//    }
-//
-//    @Override
-//    public void onAccuracyChanged(Sensor sensor, int accuracy) {}
 
 
     // ================================== inner class ===========================================
@@ -219,6 +196,11 @@ public class ServiceSensor extends Service{
                     Log.i("PEDOLOG_SS", i + ":" + locationList.get(i).getLatitude() + ", " + locationList.get(i).getLongitude());
                     sqlController.insert(locationList.get(i).getLatitude(), locationList.get(i).getLongitude());
                 }
+            }
+            if (Calendar.getInstance().getTimeInMillis() - ServiceSensor.startTime.getTimeInMillis()
+                    > 43200000){
+                // 12 시간 초과시
+                sensorStop();
             }
         }
     }
