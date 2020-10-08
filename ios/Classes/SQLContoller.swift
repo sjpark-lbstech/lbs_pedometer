@@ -71,7 +71,7 @@ class SQLController : NSObject{
             sqlite3_bind_double(insertStatement, 2, lng)
             
             if sqlite3_step(insertStatement) == SQLITE_DONE {
-              print("\nSuccessfully inserted row.")
+              print("\nSuccessfully inserted row. lat: \(lat), lng: \(lng)")
             } else {
               print("\nCould not insert row.")
             }
