@@ -14,10 +14,10 @@ public class SwiftLbsPedometerPlugin: NSObject, FlutterPlugin {
     registrar.addApplicationDelegate(instance)
     
     controller = SensorController(channel: SwiftLbsPedometerPlugin.channel!)
-    let isRunning = UserDefaults.standard.bool(forKey: "isRunning")
-    if isRunning {
-        controller?.start()
+    if let start = UserDefaults.standard.object(forKey: "isRunning"), start is Date{
+        controller?.start(start: start as! Date)
     }
+    
   }
 
   public func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
