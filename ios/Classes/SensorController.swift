@@ -26,6 +26,8 @@ class SensorController: NSObject, CLLocationManagerDelegate {
     var state : Int
     var isRunning = false
     
+    var startDate: Date?
+    
     init(channel : FlutterMethodChannel) {
         self.channel = channel
         state = STATE_UNDEFINED
@@ -39,6 +41,15 @@ class SensorController: NSObject, CLLocationManagerDelegate {
             
             if self.sql.isAvailable() {
                 self.sql.insert(lat: location!.coordinate.latitude , lng: location!.coordinate.longitude)
+            }
+            
+            // 제한 시간 설정
+            if let start = startDate{
+                let interval = Date().timeIntervalSince(start)
+                if interval >= (60*60*12) { // 12시간
+                    locationManager.stopUpdatingLocation()
+                    locationManager.stopMonitoringSignificantLocationChanges()
+                }
             }
         }
     }
@@ -73,8 +84,27 @@ class SensorController: NSObject, CLLocationManagerDelegate {
         locationManager.startUpdatingLocation()
         locationManager.startMonitoringSignificantLocationChanges()
         
+        if startDate == nil {
+            startDate = Date()
+        }
+        
         isRunning = true
-        UserDefaults.standard.set(true, forKey: "isRunning")
+        UserDefaults.standard.set(startDate, forKey: "isRunning")
+        
+        print("ios location sensor turn on.")
+    }
+    
+    func start(start: Date){
+        if #available(iOS 9.0, *) {
+            locationManager.allowsBackgroundLocationUpdates = true
+        }
+        locationManager.delegate = self
+        
+        locationManager.requestAlwaysAuthorization()
+        locationManager.startUpdatingLocation()
+        locationManager.startMonitoringSignificantLocationChanges()
+        isRunning = true
+        startDate = start
         
         print("ios location sensor turn on.")
     }
@@ -88,8 +118,9 @@ class SensorController: NSObject, CLLocationManagerDelegate {
             result = sql.selctAll()
             sql.cleanDB()
         }
-        isRunning = false;
-        UserDefaults.standard.set(false, forKey: "isRunning")
+        isRunning = false
+        startDate = nil
+        UserDefaults.standard.removeObject(forKey: "isRunning")
         print("ios pedometer and location sensor turn off.")
         return result
     }
