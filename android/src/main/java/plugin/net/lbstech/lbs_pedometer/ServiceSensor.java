@@ -31,6 +31,8 @@ import java.util.List;
 import io.flutter.Log;
 
 public class ServiceSensor extends Service{
+    private final int TIME_LIMIT_HOUR = 6;
+
     private final int MSG_INIT = 0XAA1;
     private final int MSG_SENSOR_TRIGGER = 0XAA2;
     private final int MSG_LIFECYCLE_START = 0XAA3;
@@ -198,7 +200,7 @@ public class ServiceSensor extends Service{
                 }
             }
             if (Calendar.getInstance().getTimeInMillis() - ServiceSensor.startTime.getTimeInMillis()
-                    > 43200000){
+                    > 1000*60*60 * TIME_LIMIT_HOUR){
                 // 12 시간 초과시
                 sensorStop();
             }
