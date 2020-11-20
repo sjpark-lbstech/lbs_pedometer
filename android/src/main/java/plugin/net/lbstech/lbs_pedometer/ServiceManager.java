@@ -62,8 +62,11 @@ public class ServiceManager implements ServiceConnection {
 
     // 서비스 종료
     ArrayList<double[]> serviceStop(){
+        ArrayList<double[]> result = sqlController.getHistory();
+        serviceMessenger = null;
+        isRebind = false;
+        sqlController.clear();
         if (isServiceConnected()) {
-            ArrayList<double[]> result = sqlController.getHistory();
             try {
                 context.unbindService(this);
                 Intent serviceIntent = new Intent(context, ServiceSensor.class);
@@ -71,12 +74,8 @@ public class ServiceManager implements ServiceConnection {
             } catch (Exception e){
                 Log.i("ANDOIRD_SM", "Error occurred :" + e.getLocalizedMessage());
             }
-            serviceMessenger = null;
-            isRebind = false;
-            return result;
-        }else {
-            return null;
         }
+        return result;
     }
 
     // =================================== life cycle 관련 ========================================
@@ -96,7 +95,6 @@ public class ServiceManager implements ServiceConnection {
         if (isServiceRunning){
             isRebind = true;
             serviceBind();
-
             try {
                 Message msg = Message.obtain(null, MSG_LIFECYCLE_START);
                 msg.replyTo = pluginMessenger;

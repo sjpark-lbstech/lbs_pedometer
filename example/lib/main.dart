@@ -23,11 +23,6 @@ class _MyAppState extends State<MyApp> {
     _pedometer.getHistory().then((list) {
       if (list != null){
         _history.addAll(list);
-        _pedometer.start(onTakeStep: onTakeStep);
-        for(Coordinate data in list){
-          print(data.toString());
-        }
-
         if (mounted){
           setState(() { });
         }
@@ -90,7 +85,7 @@ class _MyAppState extends State<MyApp> {
                       itemBuilder: (context, pos){
                         return ListTile(
                           title: Text('lat: ${_history[pos].latitude}, '
-                              '\nlng: ${_history[pos].latitude}'),
+                              '\nlng: ${_history[pos].longitude}'),
                         );
                       },
                       itemCount: _history.length,
@@ -113,7 +108,9 @@ class _MyAppState extends State<MyApp> {
 
   void clickStop() async{
     final coordinates = await _pedometer.stop();
-    coordinates.forEach((element) => print(element));
+    if (coordinates != null && coordinates.isNotEmpty) {
+      coordinates.forEach((element) => print(element));
+    }
     _history.clear();
     if (mounted){
       setState(() { });

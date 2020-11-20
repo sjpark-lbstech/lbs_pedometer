@@ -1,5 +1,14 @@
 part of lbs_pedometer;
 
+/// ## Pedometer - rs2020
+///
+/// ### ANDROID FLOW
+/// 1. start()를 통한 foreground service 실행
+/// 2. 위치 업데이트가 발생할 때 마다 sqlite에 데이터 저장
+/// 3. 만약 중간에 의도치 않은 이유로 foreground가 종료되면 위치이벤트는 종료
+///   - 그러나 SQLite 는 지워지지 않는다.
+///   - 즉, SQLite에 데이터가 있으면 종료되지 않은것!
+/// 4. stop() 시에 모든 저장된 데이터가 불러와지고, SQLite clear 된다.
 class Pedometer{
   static final Pedometer _instance = Pedometer._internal();
   static _PedometerController _controller;
