@@ -36,7 +36,6 @@ public class LbsPedometerPlugin implements FlutterPlugin,
 
   private static Context applicationContext;
   private static Activity activity;
-  private boolean isServiceRunning;
 
   private static boolean isRegisterLifecycleCallBack = false;
   private static boolean isInit = true;
@@ -180,14 +179,13 @@ public class LbsPedometerPlugin implements FlutterPlugin,
     Log.i("PEDOLOG_PP", "onStarted");
 
     if (serviceManager == null) return;
-    isServiceRunning = isServiceRunning(ServiceSensor.class);
-    serviceManager.onStarted(isServiceRunning);
+    serviceManager.onStarted(isServiceRunning(ServiceSensor.class));
   }
 
   @Override
   public void onActivityResumed(Activity activity) {
     Log.i("PEDOLOG_PP", "onResumed");
-    if(isServiceRunning){
+    if(isServiceRunning(ServiceSensor.class)){
       ArrayList<double[]> list = SQLController.getInstance(applicationContext).getHistory();
       channel.invokeMethod("androidResume", list);
     }
@@ -201,7 +199,9 @@ public class LbsPedometerPlugin implements FlutterPlugin,
   @Override
   public void onActivityStopped(Activity activity) {
     Log.i("PEDOLOG_PP", "onStopped");
-    serviceManager.onStopped();
+    if(isServiceRunning(ServiceSensor.class)){
+      serviceManager.onStopped();
+    }
   }
 
   @Override

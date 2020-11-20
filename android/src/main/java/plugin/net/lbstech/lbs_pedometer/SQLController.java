@@ -27,6 +27,7 @@ class SQLController {
         // connect database
         final String DATABASE_NAME = "sensor";
         database = context.openOrCreateDatabase(DATABASE_NAME, Context.MODE_PRIVATE, null);
+
         // create table
         database.execSQL(
                 "CREATE TABLE IF NOT EXISTS "
@@ -34,9 +35,6 @@ class SQLController {
                 + "(_id INTEGER PRIMARY KEY AUTOINCREMENT, " +
                         "latitude REAL, " +
                         "longitude REAL)");
-
-        // 비정상 종료시 남아있는 데이터 삭제
-        clear();
     }
 
     /**
@@ -71,8 +69,6 @@ class SQLController {
      * @return 전체 쿼리 결과를 담은 list
      */
     ArrayList<double[]> getHistory(){
-        if ( !isActivate ) return null;
-
         Cursor cursor;
         synchronized (database){
             cursor = database.query(TABLE_NAME, null,
@@ -89,6 +85,7 @@ class SQLController {
                 result.add(row);
             }
             cursor.close();
+            Log.i("PEDOLOG_SC", "getHistory >> num of tuple : " + result.size());
             return result;
         }else{
             Log.i("PEDOLOG_SC", "getHistory...조회하려는 테이블이 비어있습니다.");

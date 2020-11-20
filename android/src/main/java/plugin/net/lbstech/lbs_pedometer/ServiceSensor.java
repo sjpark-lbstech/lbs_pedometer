@@ -129,14 +129,12 @@ public class ServiceSensor extends Service{
     public void onDestroy() {
         Log.i("PEDOLOG_SS", "onDestroy called.");
         sensorStop();
-        sqlController.clear();
         super.onDestroy();
     }
 
     @Override
     public boolean onUnbind(Intent intent) {
         Log.i("PEDOLOG_SS", "onUnbind called.");
-        sqlController.clear();
         return super.onUnbind(intent);
     }
 
