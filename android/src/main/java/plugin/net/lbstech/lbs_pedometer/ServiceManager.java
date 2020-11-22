@@ -49,8 +49,12 @@ public class ServiceManager implements ServiceConnection {
         Intent serviceIntent = new Intent(context, ServiceSensor.class);
         serviceIntent.putExtra("title", notificationTitle);
         serviceIntent.putExtra("text", notificationContent);
+        int labelRes = context.getApplicationInfo().labelRes;
+        String label = labelRes == 0
+                ? context.getApplicationInfo().nonLocalizedLabel.toString()
+                : context.getString(labelRes);
+        if (!label.isEmpty()) serviceIntent.putExtra("label", label);
         ContextCompat.startForegroundService(context, serviceIntent);
-
         serviceBind();
     }
 
@@ -63,9 +67,6 @@ public class ServiceManager implements ServiceConnection {
     // 서비스 종료
     ArrayList<double[]> serviceStop(){
         ArrayList<double[]> result = sqlController.getHistory();
-        serviceMessenger = null;
-        isRebind = false;
-        sqlController.clear();
         if (isServiceConnected()) {
             try {
                 context.unbindService(this);
@@ -75,6 +76,11 @@ public class ServiceManager implements ServiceConnection {
                 Log.i("ANDOIRD_SM", "Error occurred :" + e.getLocalizedMessage());
             }
         }
+
+        // 종료된 이후에 변수 초기화!!
+        serviceMessenger = null;
+        isRebind = false;
+        sqlController.clear();
         return result;
     }
 

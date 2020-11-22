@@ -97,26 +97,27 @@ public class ServiceSensor extends Service{
             Bundle bundle = intent.getExtras();
             String title = "GPS Activating";
             String text = "App is receive location update";
+            String label = "location based service";
             if (bundle != null) {
                 if (bundle.containsKey("title")) title = bundle.getString("title");
                 if (bundle.containsKey("text")) text = bundle.getString("text");
+                if (bundle.containsKey("label")) label = bundle.getString("label");
             }
-            Notification notification = buildNotification(title, text);
+            Notification notification = buildNotification(title, text, label);
             startForeground(1, notification);
         }
         return START_STICKY;
     }
 
-    private Notification buildNotification(String title, String text){
+    private Notification buildNotification(String title, String text, String label){
         NotificationCompat.Builder builder;
-        String CHANNEL_ID = "lbstech_service_channel";
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O){
-            NotificationChannel channel = new NotificationChannel(CHANNEL_ID, CHANNEL_ID,
+            NotificationChannel channel = new NotificationChannel(label, label,
                     NotificationManager.IMPORTANCE_DEFAULT);
             ((NotificationManager)getSystemService(Context.NOTIFICATION_SERVICE))
                     .createNotificationChannel(channel);
         }
-        builder = new NotificationCompat.Builder(this, CHANNEL_ID)
+        builder = new NotificationCompat.Builder(this, label)
                 .setShowWhen(false)
                 .setContentTitle(title)
                 .setContentText(text)
@@ -199,7 +200,7 @@ public class ServiceSensor extends Service{
             }
             if (Calendar.getInstance().getTimeInMillis() - ServiceSensor.startTime.getTimeInMillis()
                     > 1000*60*60 * TIME_LIMIT_HOUR){
-                // 12 시간 초과시
+                // 일정 시간 초과시
                 sensorStop();
             }
         }
