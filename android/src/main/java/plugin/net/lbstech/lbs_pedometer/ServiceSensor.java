@@ -36,6 +36,8 @@ public class ServiceSensor extends Service{
     private final int MSG_LIFECYCLE_START = 0XAA3;
     private final int MSG_LIFECYCLE_STOP = 0XAA4;
 
+    private static final int LOCATION_TIME_LIMIT = 6;
+
     private FusedLocationProviderClient fusedLocationProviderClient;
     private LocationCallback locationCallback;
     private Messenger appMessenger;
@@ -196,8 +198,7 @@ public class ServiceSensor extends Service{
                 }
             }
             if (Calendar.getInstance().getTimeInMillis() - ServiceSensor.startTime.getTimeInMillis()
-                    > 43200000){
-                // 12 시간 초과시
+                    > 1000 * 60 * 60 * LOCATION_TIME_LIMIT){ // ms * s * m * hour
                 sensorStop();
             }
         }

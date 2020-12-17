@@ -9,9 +9,7 @@ import android.util.Log;
 
 import androidx.annotation.NonNull;
 
-import java.nio.channels.Channel;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import io.flutter.embedding.engine.plugins.FlutterPlugin;

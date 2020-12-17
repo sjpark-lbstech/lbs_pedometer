@@ -4,14 +4,17 @@ import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
-import android.util.Log;
 
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.HashMap;
 
+import io.flutter.Log;
+
 class SQLController {
     private final String TABLE_NAME = "pedometer";
+    /** DB에 인서트 할 때 최소 변화량을 만족하지 않으면 삽입되지 않는다. */
+    private static final double INSERT_THRESHOLD = 0.000002;
 
     private static SQLController instance;
     private final SQLiteDatabase database;
@@ -46,6 +49,18 @@ class SQLController {
     void insert(double latitude, double longitude){
         synchronized (database){
             if( !isActivate ) isActivate = true;
+
+            // 마지막 행을 가져와서 같은지 비교
+            Cursor cursor = database.rawQuery("SELECT * FROM tablename ORDER BY _id DESC LIMIT 1;", null);
+            if (cursor.moveToLast()) {
+                double prevLat = cursor.getDouble(cursor.getColumnIndex("latitude"));
+                double prevLng = cursor.getDouble(cursor.getColumnIndex("longitude"));
+                if (Math.abs(prevLat - latitude) < INSERT_THRESHOLD && Math.abs(prevLng - longitude) < INSERT_THRESHOLD) {
+                    Log.i("PEDOLOG_SC", "직전 기록과 거의 동일하기 때문에 insert 취소");
+                    return;
+                }
+            }
+
             ContentValues values = new ContentValues();
             values.put("latitude", latitude);
             values.put("longitude", longitude);

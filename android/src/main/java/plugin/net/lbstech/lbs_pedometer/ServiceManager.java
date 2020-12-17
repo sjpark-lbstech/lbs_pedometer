@@ -84,9 +84,7 @@ public class ServiceManager implements ServiceConnection {
     void requestPermission(){
         // android Q 버전 부터 동적 퍼미션 필요.
         // Q's API level : 29
-        if (Build.VERSION.SDK_INT >= 29){
-            // TODO : API 29 부터 ACCESS_BACKGROUND_LOCATION 동적 퍼미션 체크.
-        }
+
     }
 
     void onStarted(boolean isServiceRunning){

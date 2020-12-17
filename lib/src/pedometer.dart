@@ -42,9 +42,13 @@ class Pedometer{
   /// 현제 pedometer의 이벤트를 받고 있을 경우 해당 이벤트 스트림을 취소한다.
   ///
   /// onAndroidStop 의 경우 안드로이드에서만 호출되는 함수이며, 최종 기록들을 모두 불러온다.
-  Future<List<Coordinate>> stop(){
+  Future<List<Coordinate>> stop() async{
     _onTakeStep = null;
-    return _controller.stop() ?? [];
+    final result = (await _controller.stop()) ?? [];
+    if (result.length >= 15) { // 어느정도 길이가 형성이 되어야 가능
+      return OutlierFilter(result).refine();
+    }
+    return result;
   }
 
   /// permission 을 요청하는 함수
