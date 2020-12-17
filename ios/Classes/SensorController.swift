@@ -17,6 +17,9 @@ class SensorController: NSObject, CLLocationManagerDelegate {
     let STATE_WHEN_IN_USE = 3
     let STATE_ALWAYS = 4
     
+    // 제한 시간
+    let TIME_LIMIT = 6
+    
     let locationManager = CLLocationManager()
     let channel : FlutterMethodChannel
     let sql = SQLController.instance
@@ -46,7 +49,7 @@ class SensorController: NSObject, CLLocationManagerDelegate {
             // 제한 시간 설정
             if let start = startDate{
                 let interval = Date().timeIntervalSince(start)
-                if interval >= (60*60*12) { // 12시간
+                if interval >= (60*60*TIME_LIMIT) { // 제한시간
                     locationManager.stopUpdatingLocation()
                     locationManager.stopMonitoringSignificantLocationChanges()
                 }
