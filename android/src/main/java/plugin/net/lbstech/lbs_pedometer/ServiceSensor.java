@@ -7,6 +7,7 @@ import android.app.NotificationManager;
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.ApplicationInfo;
 import android.location.Location;
 import android.os.Build;
 import android.os.Bundle;
@@ -97,7 +98,13 @@ public class ServiceSensor extends Service{
             Bundle bundle = intent.getExtras();
             String title = "GPS Activating";
             String text = "App is receive location update";
-            String label = "location based service";
+
+            ApplicationInfo applicationInfo = getApplicationContext().getApplicationInfo();
+            int stringId = applicationInfo.labelRes;
+            String label = stringId == 0
+                    ? applicationInfo.nonLocalizedLabel.toString()
+                    : getApplicationContext().getString(stringId);
+
             if (bundle != null) {
                 if (bundle.containsKey("title")) title = bundle.getString("title");
                 if (bundle.containsKey("text")) text = bundle.getString("text");
