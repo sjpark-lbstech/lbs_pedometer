@@ -4,12 +4,33 @@ class OutlierFilter {
   /// ### 거리 변화량 제한값.
   /// 이 값을 사용해서 filter 를 작동시킨다.
   double threshold;
+  
+  /// 최초에 받은 GPS 리스트
   final List<Coordinate> _rawGPS;
+
+  /// 각 GPS 사이의 거리를 가지는 [List].
+  ///
+  /// [_rawGPS]의 길이 -1의 길이를 가진다.
   final List<double> _diff = [];
+
+  /// 각 [_diff]들 간의 차이를 가지는 [List].
+  ///
+  /// 즉, 점 사이의 거리 변화량이며, [_dist]의 첫번째 값은 [_diff]의 첫번째 값과 같다.
+  /// ```
+  /// assert(_dist[0] == _diff[0]);
+  /// ```
   final List<double> _dist = [];
+
+  /// 표쥰점수
   final List<double> _zScore = [];
 
-  double _averOfDiff, _averOfDist;
+  /// 각 GPS 점간의 평군 거리
+  double _averOfDiff;
+
+  /// 거리의 평균 변동량
+  double _averOfDist;
+
+  /// GPS 사이의 거리들의 표준편차
   double _standardDeviation;
 
   /// ### [OutlierFilter] 생성자
