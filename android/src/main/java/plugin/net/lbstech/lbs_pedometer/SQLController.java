@@ -51,7 +51,8 @@ class SQLController {
             if( !isActivate ) isActivate = true;
 
             // 마지막 행을 가져와서 같은지 비교
-            Cursor cursor = database.rawQuery("SELECT * FROM tablename ORDER BY _id DESC LIMIT 1;", null);
+            Cursor cursor = database.rawQuery(
+                    "SELECT * FROM " + TABLE_NAME + " ORDER BY _id DESC LIMIT 1;", null);
             if (cursor.moveToLast()) {
                 double prevLat = cursor.getDouble(cursor.getColumnIndex("latitude"));
                 double prevLng = cursor.getDouble(cursor.getColumnIndex("longitude"));
